@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+backend/storage/*
+!backend/storage/.gitkeep
+*.pdf
+.env
+.DS_Store
+notes/

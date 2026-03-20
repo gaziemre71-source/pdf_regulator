@@ -76,14 +76,13 @@ def render_page(pdf_id: str, page_num: int, dpi: int = 120) -> bytes:
     return png_bytes
 
 
-def extract_pages(pdf_id: str, start_page: int, end_page: int, rotations: dict[int, int] = None) -> tuple[str, str]:
-    """Belirtilen sayfa aralığını (dahil) yeni bir PDF dosyası olarak çıkarır
+def extract_pages(pdf_id: str, page_indices: list[int], rotations: dict[int, int] = None) -> tuple[str, str]:
+    """Belirtilen sayfa listesini yeni bir PDF dosyası olarak çıkarır
     ve belirtilen açılara göre döndürür.
 
     Args:
         pdf_id: Kaynak PDF kimliği
-        start_page: Başlangıç sayfası (0-tabanlı, dahil)
-        end_page: Bitiş sayfası (0-tabanlı, dahil)
+        page_indices: Çıkarılacak sayfa indeksleri listesi (0-tabanlı)
         rotations: {sayfa_indeksi: döndürme_açısı} örneğin {0: 90, 1: -90}
 
     Returns:
@@ -95,32 +94,45 @@ def extract_pages(pdf_id: str, start_page: int, end_page: int, rotations: dict[i
     src_path = _src_path(pdf_id)
     src_doc = fitz.open(str(src_path))
 
-    # Sayfa sayısını doğrula
+    # Sayfa sayısını doğrula ve geçersizleri ayıkla
     total = len(src_doc)
-    start_page = max(0, min(start_page, total - 1))
-    end_page = max(start_page, min(end_page, total - 1))
+    valid_indices = [idx for idx in page_indices if 0 <= idx < total]
+    
+    if not valid_indices:
+         src_doc.close()
+         raise ValueError("Hiç geçerli sayfa seçilmedi.")
 
     new_doc = fitz.open()
-    new_doc.insert_pdf(src_doc, from_page=start_page, to_page=end_page)
+    
+    # Her bir sayfayı tek tek ekle (sırayı korumak için)
+    for idx in valid_indices:
+        new_doc.insert_pdf(src_doc, from_page=idx, to_page=idx)
 
     # Rotasyonları uygula
     has_rotation = False
-    for i, page in enumerate(new_doc):
+    for i, _ in enumerate(new_doc):
         # Orijinal PDF'teki sayfa indeksi
-        orig_page_idx = start_page + i
+        orig_page_idx = valid_indices[i]
         if orig_page_idx in rotations:
             angle = rotations[orig_page_idx]
             if angle != 0:
+                page = new_doc[i]
                 page.set_rotation((page.rotation + angle) % 360)
                 has_rotation = True
 
     file_id = uuid.uuid4().hex
     
-    # Dosya adına rotasyon bilgisi ekle
-    if has_rotation:
-        filename = f"rotated_pages_{start_page + 1}_{end_page + 1}.pdf"
+    # Dosya adına seçilen sayfa sayısını ekle
+    count = len(valid_indices)
+    if count == 1:
+        label = f"page_{valid_indices[0] + 1}"
     else:
-        filename = f"pages_{start_page + 1}_{end_page + 1}.pdf"
+        label = f"{count}_pages"
+
+    if has_rotation:
+        filename = f"rotated_{label}.pdf"
+    else:
+        filename = f"{label}.pdf"
         
     out_path = STORAGE_DIR / f"{file_id}_{filename}"
     new_doc.save(str(out_path))

@@ -18,25 +18,27 @@ templates = Jinja2Templates(
 
 class ExtractRequest(BaseModel):
     pdf_id: str
-    start_page: int  # 0-tabanlı
-    end_page: int    # 0-tabanlı, dahil
+    page_indices: list[int]  # 0-tabanlı seçili sayfalar listesi
     rotations: dict[int, int] = {} # sayfa_indeksi: açı
 
 
 @router.post("/extract")
 async def extract_pages(req: ExtractRequest, request: Request):
-    """Sayfa aralığını çıkarır, sol panel HTML parçası döner."""
-    if req.start_page > req.end_page:
-        raise HTTPException(status_code=400, detail="start_page > end_page olamaz.")
+    """Seçili sayfaları çıkarır, sol panel HTML parçası döner."""
+    if not req.page_indices:
+        raise HTTPException(status_code=400, detail="Hiç sayfa seçilmedi.")
 
     try:
         file_id, filename = pdf_service.extract_pages(
-            req.pdf_id, req.start_page, req.end_page, req.rotations
+            req.pdf_id, req.page_indices, req.rotations
         )
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Kaynak PDF bulunamadı.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF çıkarma hatası: {e}")
+
+    count = len(req.page_indices)
+    label = f"{count} Sayfa" if count > 1 else f"Sayfa {req.page_indices[0] + 1}"
 
     return templates.TemplateResponse(
         "partials/pdf_item.html",
@@ -44,6 +46,6 @@ async def extract_pages(req: ExtractRequest, request: Request):
             "request": request,
             "file_id": file_id,
             "filename": filename,
-            "label": f"Sayfa {req.start_page + 1}–{req.end_page + 1}",
+            "label": label,
         },
     )

@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PDF Selector & Rotator</title>
+  <title>PDF REGULATOR</title>
   <meta name="description" content="PDF sayfalarını seç, çıkar ve döndür — hızlı ve basit." />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -11,7 +12,7 @@
       theme: {
         extend: {
           colors: {
-            brand: { 50:'#eff6ff', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8' },
+            brand: { 50: '#eff6ff', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
           }
         }
       }
@@ -20,15 +21,16 @@
   <link rel="stylesheet" href="/static/css/app.css" />
   <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" defer></script>
 </head>
+
 <body class="bg-gray-950 text-gray-100 h-screen flex flex-col overflow-hidden font-sans">
 
   <!-- HEADER -->
   <header class="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center gap-3 shrink-0">
     <svg class="w-7 h-7 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round"
-        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
     </svg>
-    <h1 class="text-lg font-bold tracking-tight">PDF Selector <span class="text-blue-500">&</span> Rotator</h1>
+    <h1 class="text-lg font-bold tracking-tight">PDF <span class="text-blue-500">REGULATOR</span></h1>
   </header>
 
   <!-- MAIN: Sol Panel + PDF Viewer -->
@@ -39,11 +41,7 @@
       <div class="px-4 py-3 border-b border-gray-800">
         <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Üretilen PDFler</h2>
       </div>
-      <ul
-        id="output-list"
-        class="flex-1 overflow-y-auto p-3 space-y-2"
-        hx-swap-oob="true"
-      >
+      <ul id="output-list" class="flex-1 overflow-y-auto p-3 space-y-2" hx-swap-oob="true">
         <li id="output-empty" class="text-xs text-gray-600 italic text-center mt-8">
           Henüz PDF üretilmedi.
         </li>
@@ -54,36 +52,41 @@
     <section class="flex-1 flex flex-col overflow-hidden">
 
       <!-- Araç çubuğu (sayfa seçim bilgisi + butonlar) -->
-      <div
-        id="toolbar"
-        class="hidden bg-gray-900 border-b border-gray-800 px-5 py-2 flex items-center gap-3 shrink-0"
-      >
+      <div id="toolbar" class="hidden bg-gray-900 border-b border-gray-800 px-5 py-2 flex items-center gap-3 shrink-0">
         <!-- Sayfa seçim bilgisi -->
         <span id="selection-info" class="text-sm text-gray-400 flex-1">
-          Başlangıç sayfasına tıklayın.
+          Sayfalara tıklayarak seçin.
         </span>
 
+        <div class="flex items-center gap-2">
+          <button
+            class="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors"
+            onclick="selectAllPages()">
+            Hepsini Seç
+          </button>
+          <button
+            class="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors"
+            onclick="clearSelection()">
+            Seçimi Temizle
+          </button>
+        </div>
+
+        <div class="h-6 w-px bg-gray-800 mx-1"></div>
+
         <!-- Çıkar -->
-        <button
-          id="btn-extract"
-          class="action-btn bg-blue-600 hover:bg-blue-500 text-white border-blue-500"
-          onclick="doExtract()"
-          title="Seçili Sayfaları Çıkar"
-        >
+        <button id="btn-extract" class="action-btn bg-blue-600 hover:bg-blue-500 text-white border-blue-500"
+          onclick="doExtract()" title="Seçili Sayfaları Çıkar">
           ✂ Çıkar
         </button>
       </div>
 
       <!-- Sayfa listesi -->
-      <div
-        id="viewer"
-        class="flex-1 overflow-y-auto px-6 py-4 scroll-smooth"
-      >
+      <div id="viewer" class="flex-1 overflow-y-auto px-6 py-4 scroll-smooth">
         <!-- Upload öncesi boş durum -->
         <div id="upload-hint" class="flex flex-col items-center justify-center h-full gap-4 text-gray-600">
           <svg class="w-20 h-20" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round"
-              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
           <p class="text-lg">Aşağıdan bir PDF yükleyin</p>
         </div>
@@ -93,28 +96,18 @@
 
   <!-- UPLOAD ALANI (alt kısım) -->
   <footer class="bg-gray-900 border-t border-gray-800 px-6 py-4 shrink-0">
-    <div
-      id="drop-zone"
-      class="border-2 border-dashed border-gray-700 rounded-xl p-5 text-center cursor-pointer
+    <div id="drop-zone" class="border-2 border-dashed border-gray-700 rounded-xl p-5 text-center cursor-pointer
              hover:border-blue-500 transition-colors duration-200"
       onclick="document.getElementById('file-input').click()"
       ondragover="event.preventDefault(); this.classList.add('border-blue-400','bg-blue-950')"
-      ondragleave="this.classList.remove('border-blue-400','bg-blue-950')"
-      ondrop="handleDrop(event)"
-    >
+      ondragleave="this.classList.remove('border-blue-400','bg-blue-950')" ondrop="handleDrop(event)">
       <p class="text-sm text-gray-400">
         <span class="text-blue-400 font-semibold">PDF seç</span> veya buraya sürükleyip bırak
         <span class="text-xs text-gray-600 block mt-1">Yalnızca .pdf dosyaları</span>
       </p>
     </div>
     <form id="upload-form" class="hidden">
-      <input
-        id="file-input"
-        type="file"
-        accept=".pdf"
-        class="hidden"
-        onchange="uploadFile(this)"
-      />
+      <input id="file-input" type="file" accept=".pdf" class="hidden" onchange="uploadFile(this)" />
     </form>
     <!-- Yükleme durumu -->
     <div id="upload-status" class="text-xs text-center mt-2 text-gray-500 hidden"></div>
@@ -123,17 +116,16 @@
   <script>
     // ─── Durum ──────────────────────────────────────────────────────────
     let currentPdfId = null;
-    let totalPages   = 0;
-    let startPage    = null;   // 0-tabanlı
-    let endPage      = null;   // 0-tabanlı
-    let hoverPageIdx = null;   // 0-tabanlı (hover edilen)
+    let totalPages = 0;
+    let selectedPages = [];   // [idx1, idx2, ...]
+    let lastClickedPageIdx = null; // Shift seçimi için
     let pageRotations = {};    // { pageIndex: rotationAngle (0, 90, 180, 270) }
 
     // ─── Upload ─────────────────────────────────────────────────────────
     function handleDrop(e) {
       e.preventDefault();
       const zone = document.getElementById('drop-zone');
-      zone.classList.remove('border-blue-400','bg-blue-950');
+      zone.classList.remove('border-blue-400', 'bg-blue-950');
       const file = e.dataTransfer.files[0];
       if (file) sendFile(file);
     }
@@ -163,15 +155,15 @@
         const html = await res.text();
         // viewer içeriğini güncelle
         document.getElementById('viewer').innerHTML = html;
-        
+
         // HTMX innerHTML ile eklendiğinde script tagleri çalışmaz.
         // Bu yüzden değerleri DOM'dan okuyup UI'ı manuel güncelliyoruz.
         const inner = document.getElementById('viewer-inner');
         if (inner) {
           currentPdfId = inner.dataset.pdfId;
-          totalPages   = parseInt(inner.dataset.pageCount);
-          startPage    = null;
-          endPage      = null;
+          totalPages = parseInt(inner.dataset.pageCount);
+          selectedPages = [];
+          lastClickedPageIdx = null;
           document.getElementById('toolbar').classList.remove('hidden');
           document.getElementById('upload-hint')?.remove();
           updateSelectionInfo();
@@ -192,77 +184,87 @@
 
     // ─── Sayfa seçimi ────────────────────────────────────────────────────
     function hoverPage(pageIndex) {
-      if (startPage !== null && endPage === null) {
-        hoverPageIdx = parseInt(pageIndex);
-        updateHighlight();
-      }
+      // Hover highlight artık ardışık seçim olmadığı için gerekli değil
+      // veya isteğe bağlı olarak sadece mevcut sayfa için tutulabilir.
     }
 
-    function selectPage(pageIndex) {
+    function selectPage(pageIndex, event) {
       pageIndex = parseInt(pageIndex);
-      if (startPage === null || (startPage !== null && endPage !== null)) {
-        // İlk tıklama — başlangıç seç
-        startPage = pageIndex;
-        endPage   = null;
-        hoverPageIdx = null;
-        updateHighlight();
-        updateSelectionInfo();
-      } else {
-        // İkinci tıklama — bitiş seç
-        endPage = pageIndex;
-        if (endPage < startPage) {
-          [startPage, endPage] = [endPage, startPage];
+
+      const isShift = event.shiftKey;
+      const isMeta = event.ctrlKey || event.metaKey;
+
+      if (isShift && lastClickedPageIdx !== null) {
+        // Shift ile aralık seçimi
+        const start = Math.min(lastClickedPageIdx, pageIndex);
+        const end = Math.max(lastClickedPageIdx, pageIndex);
+        for (let i = start; i <= end; i++) {
+          if (!selectedPages.includes(i)) selectedPages.push(i);
         }
-        hoverPageIdx = null;
-        updateHighlight();
-        updateSelectionInfo();
+      } else if (isMeta) {
+        // Ctrl/Cmd ile tekil ekleme/çıkarma
+        const pos = selectedPages.indexOf(pageIndex);
+        if (pos > -1) {
+          selectedPages.splice(pos, 1);
+        } else {
+          selectedPages.push(pageIndex);
+        }
+      } else {
+        // Normal tıklama — sadece bu sayfayı seç
+        selectedPages = [pageIndex];
       }
+
+      lastClickedPageIdx = pageIndex;
+      updateHighlight();
+      updateSelectionInfo();
+    }
+
+    function selectAllPages() {
+      selectedPages = Array.from({ length: totalPages }, (_, i) => i);
+      updateHighlight();
+      updateSelectionInfo();
+    }
+
+    function clearSelection() {
+      selectedPages = [];
+      lastClickedPageIdx = null;
+      updateHighlight();
+      updateSelectionInfo();
     }
 
     function updateHighlight() {
       document.querySelectorAll('.page-card').forEach(card => {
         const idx = parseInt(card.dataset.pageIndex);
-        let selected = false;
-        
-        if (startPage !== null && endPage !== null) {
-          selected = (idx >= startPage && idx <= endPage) || (idx <= startPage && idx >= endPage);
-        } else if (startPage !== null && endPage === null) {
-          if (hoverPageIdx !== null) {
-            const min = Math.min(startPage, hoverPageIdx);
-            const max = Math.max(startPage, hoverPageIdx);
-            selected = (idx >= min && idx <= max);
-          } else {
-            selected = (idx === startPage);
-          }
-        }
-        
+        const selected = selectedPages.includes(idx);
         card.classList.toggle('selected', selected);
       });
     }
 
     function updateSelectionInfo() {
       const info = document.getElementById('selection-info');
-      if (startPage === null) {
-        info.textContent = 'Başlangıç sayfasına tıklayın.';
-      } else if (endPage === null) {
-        info.textContent = `Başlangıç: Sayfa ${startPage + 1} — Bitiş sayfasına tıklayın.`;
+      const count = selectedPages.length;
+      if (count === 0) {
+        info.textContent = 'Sayfalara tıklayarak seçin (Ctrl/Shift desteklenir).';
       } else {
-        info.textContent = `Seçili: Sayfa ${startPage + 1} – ${endPage + 1}`;
+        info.textContent = `${count} sayfa seçildi.`;
       }
     }
 
     // ─── Extract ─────────────────────────────────────────────────────────
     async function doExtract() {
       if (!validateSelection()) return;
-      
-      // Sadece seçili sayfa aralığındaki rotasyonları backend'e gönder
+
+      // Sadece seçili sayfalardaki rotasyonları backend'e gönder
       const actRotations = {};
-      for (let i = startPage; i <= endPage; i++) {
-        if (pageRotations[i]) actRotations[i] = pageRotations[i];
-      }
+      selectedPages.forEach(idx => {
+        if (pageRotations[idx]) actRotations[idx] = pageRotations[idx];
+      });
+
+      // Sayfaları sırala (orijinal sıra korunmalı)
+      const sortedIndices = [...selectedPages].sort((a, b) => a - b);
 
       const res = await postAction('/extract', {
-        pdf_id: currentPdfId, start_page: startPage, end_page: endPage, rotations: actRotations
+        pdf_id: currentPdfId, page_indices: sortedIndices, rotations: actRotations
       });
       if (res) appendToOutputList(res);
     }
@@ -271,14 +273,14 @@
     function rotateSinglePage(event, pageIndex, direction) {
       // Event propagation'ı durdur (sayfa seçilmesin diye)
       event.stopPropagation();
-      
+
       const angle = direction === 'left' ? -90 : 90;
       let currentRotation = pageRotations[pageIndex] || 0;
       currentRotation = (currentRotation + angle) % 360;
       if (currentRotation < 0) currentRotation += 360;
-      
+
       pageRotations[pageIndex] = currentRotation;
-      
+
       const card = document.getElementById(`page-card-${pageIndex}`);
       if (card) {
         const img = card.querySelector('.page-img');
@@ -317,18 +319,16 @@
 
     function validateSelection() {
       if (!currentPdfId) { showStatus('⚠ Önce bir PDF yükleyin.', 'text-yellow-400'); return false; }
-      if (startPage === null) { showStatus('⚠ Sayfa seçin.', 'text-yellow-400'); return false; }
-      if (endPage === null) endPage = startPage;
+      if (selectedPages.length === 0) { showStatus('⚠ Sayfa seçin.', 'text-yellow-400'); return false; }
       return true;
     }
 
     // ─── Viewer init callback (HTMX /upload yanıtı DOM'a yazıldıktan sonra) ──
     document.addEventListener('viewerReady', (e) => {
       currentPdfId = e.detail.pdfId;
-      totalPages   = e.detail.pageCount;
-      startPage    = null;
-      endPage      = null;
-      hoverPageIdx = null;
+      totalPages = e.detail.pageCount;
+      selectedPages = [];
+      lastClickedPageIdx = null;
       pageRotations = {};
       document.getElementById('toolbar').classList.remove('hidden');
       document.getElementById('upload-hint')?.remove();
@@ -336,4 +336,5 @@
     });
   </script>
 </body>
+
 </html>

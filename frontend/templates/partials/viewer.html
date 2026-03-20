@@ -1,16 +1,11 @@
-{#
-  Partial: viewer.html
-  Upload sonrası çağrılır — PDF sayfalarını listeler.
-  Jinja2 değişkenleri: pdf_id, page_count, filename
-#}
 <div
   id="viewer-inner"
-  class="space-y-4"
+  class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-6 w-full"
   data-pdf-id="{{ pdf_id }}"
   data-page-count="{{ page_count }}"
 >
   <!-- Dosya başlığı -->
-  <div class="text-sm text-gray-500 mb-2 flex items-center gap-2">
+  <div class="col-span-full text-sm text-gray-500 mb-2 flex items-center gap-2">
     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round"
         d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
@@ -29,19 +24,18 @@
     onmouseenter="hoverPage('{{ i }}')"
     title="Sayfa {{ i + 1 }}"
   >
-    <!-- Rotate Overlay Butonları -->
-    <div class="rotate-overlay">
-      <button class="rotate-btn" onclick="rotateSinglePage(event, '{{ i }}', 'left')" title="Sayfayı Sola Döndür">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg> <!-- Placeholder for Rotate Left Icon (daha basit bir ok) -->
-        <span class="sr-only">↺</span>
-      </button>
-      <button class="rotate-btn" onclick="rotateSinglePage(event, '{{ i }}', 'right')" title="Sayfayı Sağa Döndür">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg> <!-- Placeholder for Rotate Right Icon -->
-        <span class="sr-only">↻</span>
-      </button>
+    <!-- Top Bar: Index + Drag Handle + Rotates -->
+    <div class="card-top-bar">
+      <div class="drag-handle" title="Sürükleyip sıralayın">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+      </div>
+      <div class="page-number-small">{{ i + 1 }}</div>
+      <div class="flex gap-1 ml-auto">
+        <button class="small-rotate-btn" onclick="rotateSinglePage(event, '{{ i }}', 'left')" title="Sola Döndür">↺</button>
+        <button class="small-rotate-btn" onclick="rotateSinglePage(event, '{{ i }}', 'right')" title="Sağa Döndür">↻</button>
+      </div>
     </div>
 
-    <div class="page-number">{{ i + 1 }}</div>
     <img
       src="/page/{{ pdf_id }}/{{ i }}"
       alt="Sayfa {{ i + 1 }}"

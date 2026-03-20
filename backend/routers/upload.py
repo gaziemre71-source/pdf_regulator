@@ -1,11 +1,7 @@
-"""
-PDF upload endpoint — POST /upload
-Yüklenen PDF'i kaydedip sayfa sayısını döner.
-Yanıt: HTMX ile viewer panelini güncelleyen HTML parçası.
-"""
 from fastapi import APIRouter, File, UploadFile, HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
+import json
 
 from backend.services import pdf_service
 
@@ -30,7 +26,7 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF kaydedilemedi: {e}")
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         "partials/viewer.html",
         {
             "request": request,
@@ -39,3 +35,11 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
             "filename": file.filename,
         },
     )
+    # HTMX için viewerReady event'ini tetikle
+    response.headers["HX-Trigger"] = json.dumps({
+        "viewerReady": {
+            "pdfId": pdf_id, 
+            "pageCount": page_count
+        }
+    })
+    return response

@@ -9,3 +9,4 @@ backend/storage/*
 .env
 .DS_Store
 notes/
+.aider*

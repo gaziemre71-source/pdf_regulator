@@ -7,6 +7,7 @@ PDF işlem servisi — PyMuPDF (fitz) kullanarak:
 """
 import uuid
 import io
+import asyncio
 from pathlib import Path
 from typing import Literal
 
@@ -36,6 +37,51 @@ def save_upload(file_bytes: bytes, original_name: str) -> tuple[str, int]:
     doc.close()
 
     return pdf_id, page_count
+
+# OCR Task List
+OCR_TASKS: dict[str, dict] = {}
+
+async def perform_ocr(task_id: str, input_path: Path, original_name: str):
+    """Arka planda ocrmypdf kullanarak OCR işlemini gerçekleştirir."""
+    try:
+        OCR_TASKS[task_id]["status"] = "processing"
+        
+        pdf_id = uuid.uuid4().hex
+        dest_path = STORAGE_DIR / f"{pdf_id}_src.pdf"
+        
+        proc = await asyncio.create_subprocess_exec(
+            "ocrmypdf",
+            "--force-ocr",
+            "-l", "tur+eng",
+            "--jobs", "4",
+            str(input_path),
+            str(dest_path),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await proc.communicate()
+        
+        if proc.returncode != 0:
+            OCR_TASKS[task_id]["status"] = "failed"
+            OCR_TASKS[task_id]["error"] = stderr.decode('utf-8', errors='replace')
+            return
+            
+        doc = fitz.open(str(dest_path))
+        page_count = len(doc)
+        doc.close()
+        
+        OCR_TASKS[task_id]["status"] = "done"
+        OCR_TASKS[task_id]["pdf_id"] = pdf_id
+        OCR_TASKS[task_id]["page_count"] = page_count
+        OCR_TASKS[task_id]["filename"] = original_name
+        
+    except Exception as e:
+        OCR_TASKS[task_id]["status"] = "failed"
+        OCR_TASKS[task_id]["error"] = str(e)
+    finally:
+        if input_path.exists():
+            input_path.unlink()
+
 
 
 def _src_path(pdf_id: str) -> Path:

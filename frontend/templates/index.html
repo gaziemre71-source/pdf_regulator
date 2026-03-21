@@ -91,7 +91,7 @@
       </div>
 
       <!-- Sayfa listesi -->
-      <div id="viewer" class="flex-1 overflow-y-auto px-6 py-4 scroll-smooth">
+      <div id="viewer" class="flex-1 overflow-y-auto px-6 py-4">
         <div id="upload-hint" class="flex flex-col items-center justify-center h-full gap-4 text-gray-600">
           <svg class="w-20 h-20" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round"
@@ -216,6 +216,8 @@
       lastClickedPageIdx = pageIndex;
       updateHighlight();
       updateSelectionInfo();
+
+      if (event.stopPropagation) event.stopPropagation();
     }
 
     function selectAllPages() {
@@ -234,7 +236,20 @@
     function updateHighlight() {
       document.querySelectorAll('.page-card').forEach(card => {
         const idx = parseInt(card.dataset.pageIndex);
-        card.classList.toggle('selected', selectedPages.includes(idx));
+        const shouldBeSelected = selectedPages.includes(idx);
+        card.classList.toggle('selected', shouldBeSelected);
+
+        try {
+          if (typeof Sortable !== 'undefined' && Sortable.utils && Sortable.utils.select) {
+            if (shouldBeSelected) {
+              Sortable.utils.select(card);
+            } else {
+              Sortable.utils.deselect(card);
+            }
+          }
+        } catch (e) {
+          console.error("MultiDrag error", e);
+        }
       });
     }
 
@@ -390,11 +405,19 @@
       document.getElementById('upload-hint')?.remove();
       updateSelectionInfo();
       const el = document.getElementById('viewer-inner');
+      const scrollParent = document.getElementById('viewer');
+
       if (sortableInstance) sortableInstance.destroy();
       sortableInstance = new Sortable(el, {
         multiDrag: true,
         selectedClass: 'selected',
-        animation: 150, handle: '.drag-handle', ghostClass: 'sortable-ghost', dragClass: 'sortable-drag'
+        animation: 150, 
+        handle: '.drag-handle', 
+        ghostClass: 'sortable-ghost', 
+        dragClass: 'sortable-drag',
+        scroll: scrollParent, 
+        scrollSensitivity: 80,
+        scrollSpeed: 20
       });
     });
   </script>

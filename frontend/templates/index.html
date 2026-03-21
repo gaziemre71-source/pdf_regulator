@@ -70,6 +70,11 @@
             onclick="clearSelection()">
             Seçimi Temizle
           </button>
+          <button id="btn-delete-selected"
+            class="hidden px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-red-500 rounded border border-gray-700 transition-colors"
+            onclick="deleteSelectedPages()">
+            Seçilenleri Sil
+          </button>
           <button id="btn-restore-all"
             class="hidden px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-yellow-500 rounded border border-gray-700 transition-colors"
             onclick="restoreAllPages()">
@@ -187,6 +192,7 @@
     function selectPage(pageIndex, event) {
       if (event.target.closest('.drag-handle')) return;
       if (event.target.closest('.small-rotate-btn')) return;
+      if (event.target.closest('.delete-btn-inline')) return; // Ignore selection when deleting
       if (deletedPages.has(parseInt(pageIndex))) return; // Ignore clicks if page is deleted
 
       pageIndex = parseInt(pageIndex);
@@ -236,6 +242,15 @@
       const info = document.getElementById('selection-info');
       info.textContent = selectedPages.length === 0 ? 'Sayfaları seçin' : `${selectedPages.length} sayfa seçildi.`;
       
+      const btnDeleteSelected = document.getElementById('btn-delete-selected');
+      if (btnDeleteSelected) {
+        if (selectedPages.length > 0) {
+          btnDeleteSelected.classList.remove('hidden');
+        } else {
+          btnDeleteSelected.classList.add('hidden');
+        }
+      }
+
       const btnRestoreAll = document.getElementById('btn-restore-all');
       if (btnRestoreAll) {
         if (deletedPages.size > 0) {
@@ -244,6 +259,20 @@
           btnRestoreAll.classList.add('hidden');
         }
       }
+    }
+
+    function deleteSelectedPages() {
+      const pagesToDelete = [...selectedPages];
+      pagesToDelete.forEach(idx => {
+        deletedPages.add(idx);
+        const card = document.getElementById(`page-card-${idx}`);
+        if (card) {
+          card.classList.add('deleted-page');
+          card.classList.remove('selected');
+        }
+      });
+      selectedPages = [];
+      updateSelectionInfo();
     }
 
     function deletePage(event, pageIndex) {
@@ -363,6 +392,8 @@
       const el = document.getElementById('viewer-inner');
       if (sortableInstance) sortableInstance.destroy();
       sortableInstance = new Sortable(el, {
+        multiDrag: true,
+        selectedClass: 'selected',
         animation: 150, handle: '.drag-handle', ghostClass: 'sortable-ghost', dragClass: 'sortable-drag'
       });
     });

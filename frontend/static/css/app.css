@@ -251,3 +251,66 @@ body.modal-open {
   transform: rotate(2deg) scale(1.05);
   z-index: 50;
 }
+
+/* ─── Delete & Restore Feature ───────────────────── */
+.delete-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  background: rgba(239, 68, 68, 0.9); /* red-500 */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.15s, transform 0.1s;
+  z-index: 10;
+}
+
+.page-card:hover .delete-btn {
+  opacity: 1;
+}
+
+.delete-btn:hover {
+  background: #dc2626; /* red-600 */
+  transform: scale(1.1);
+}
+
+.deleted-page {
+  border-color: #374151 !important; /* disabled look */
+  background: #111827 !important;
+  box-shadow: none !important;
+  pointer-events: none; /* disable card interactions */
+}
+
+.deleted-page > *:not(.restore-overlay) {
+  opacity: 0.3;
+  filter: grayscale(100%);
+}
+
+.restore-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none; /* Only allow pointer events when the card is deleted */
+  z-index: 20;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.deleted-page .restore-overlay {
+  opacity: 1;
+  pointer-events: auto; /* Active only in deleted state */
+}
+
+.deleted-page .restore-overlay:hover span {
+  background: #3b82f6; /* Hover highlight to restore */
+}

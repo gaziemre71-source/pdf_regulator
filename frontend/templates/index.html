@@ -70,6 +70,11 @@
             onclick="clearSelection()">
             Seçimi Temizle
           </button>
+          <button id="btn-restore-all"
+            class="hidden px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-yellow-500 rounded border border-gray-700 transition-colors"
+            onclick="restoreAllPages()">
+            Hepsini Geri Getir
+          </button>
         </div>
 
         <div class="h-6 w-px bg-gray-800 mx-1"></div>
@@ -124,6 +129,7 @@
     let currentPdfId = null;
     let totalPages = 0;
     let selectedPages = [];
+    let deletedPages = new Set();
     let lastClickedPageIdx = null;
     let pageRotations = {};
     let sortableInstance = null;
@@ -159,13 +165,11 @@
         document.getElementById('viewer').innerHTML = await res.text();
         const inner = document.getElementById('viewer-inner');
         if (inner) {
-          currentPdfId = inner.dataset.pdfId;
-          totalPages = parseInt(inner.dataset.pageCount);
-          selectedPages = [];
-          lastClickedPageIdx = null;
-          document.getElementById('toolbar').classList.remove('hidden');
-          document.getElementById('upload-hint')?.remove();
-          updateSelectionInfo();
+          // Trigger the HTMX event manually since fetch doesn't
+          const evt = new CustomEvent('viewerReady', {
+            detail: { pdfId: inner.dataset.pdfId, pageCount: parseInt(inner.dataset.pageCount) }
+          });
+          document.dispatchEvent(evt);
         }
         showStatus('✓ PDF yüklendi', 'text-green-400');
       } catch (err) {
@@ -183,6 +187,7 @@
     function selectPage(pageIndex, event) {
       if (event.target.closest('.drag-handle')) return;
       if (event.target.closest('.small-rotate-btn')) return;
+      if (deletedPages.has(parseInt(pageIndex))) return; // Ignore clicks if page is deleted
 
       pageIndex = parseInt(pageIndex);
       const isShift = event.shiftKey;
@@ -208,7 +213,7 @@
     }
 
     function selectAllPages() {
-      selectedPages = Array.from({ length: totalPages }, (_, i) => i);
+      selectedPages = Array.from({ length: totalPages }, (_, i) => i).filter(i => !deletedPages.has(i));
       updateHighlight();
       updateSelectionInfo();
     }
@@ -230,6 +235,51 @@
     function updateSelectionInfo() {
       const info = document.getElementById('selection-info');
       info.textContent = selectedPages.length === 0 ? 'Sayfaları seçin' : `${selectedPages.length} sayfa seçildi.`;
+      
+      const btnRestoreAll = document.getElementById('btn-restore-all');
+      if (btnRestoreAll) {
+        if (deletedPages.size > 0) {
+          btnRestoreAll.classList.remove('hidden');
+        } else {
+          btnRestoreAll.classList.add('hidden');
+        }
+      }
+    }
+
+    function deletePage(event, pageIndex) {
+      event.stopPropagation(); // Kartın seçilmesini engelle
+      pageIndex = parseInt(pageIndex);
+      deletedPages.add(pageIndex);
+      
+      const card = document.getElementById(`page-card-${pageIndex}`);
+      if (card) {
+        card.classList.add('deleted-page');
+        card.classList.remove('selected');
+      }
+
+      const pos = selectedPages.indexOf(pageIndex);
+      if (pos > -1) selectedPages.splice(pos, 1);
+
+      updateSelectionInfo();
+    }
+
+    function restorePage(event, pageIndex) {
+      event.stopPropagation();
+      pageIndex = parseInt(pageIndex);
+      deletedPages.delete(pageIndex);
+
+      const card = document.getElementById(`page-card-${pageIndex}`);
+      if (card) {
+        card.classList.remove('deleted-page');
+      }
+
+      updateSelectionInfo();
+    }
+
+    function restoreAllPages() {
+      deletedPages.clear();
+      document.querySelectorAll('.page-card').forEach(card => card.classList.remove('deleted-page'));
+      updateSelectionInfo();
     }
 
     function rotateSinglePage(event, pageIndex, direction) {
@@ -253,7 +303,7 @@
       
       const currentOrder = Array.from(document.querySelectorAll('.page-card'))
         .map(card => parseInt(card.dataset.pageIndex));
-      const reorderedSelection = currentOrder.filter(idx => selectedPages.includes(idx));
+      const reorderedSelection = currentOrder.filter(idx => selectedPages.includes(idx) && !deletedPages.has(idx));
 
       const res = await postAction('/extract', {
         pdf_id: currentPdfId, 
@@ -304,6 +354,7 @@
       currentPdfId = e.detail.pdfId;
       totalPages = e.detail.pageCount;
       selectedPages = [];
+      deletedPages = new Set();
       lastClickedPageIdx = null;
       pageRotations = {};
       document.getElementById('toolbar').classList.remove('hidden');

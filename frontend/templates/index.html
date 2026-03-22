@@ -111,17 +111,11 @@
       ondragover="event.preventDefault(); this.classList.add('border-blue-400','bg-blue-950')"
       ondragleave="this.classList.remove('border-blue-400','bg-blue-950')" ondrop="handleDrop(event)">
       <p class="text-sm text-gray-400">
-        <span class="text-blue-400 font-semibold">PDF seç</span> veya buraya sürükleyip bırak
+        <span class="text-blue-400 font-semibold">Dosya seç (PDF, Tiff, Jpeg, Png)</span> veya buraya sürükle
       </p>
     </div>
-    <div class="mt-3 flex justify-center">
-      <label class="flex items-center gap-2 cursor-pointer text-sm text-gray-400">
-        <input type="checkbox" id="ocr-checkbox" class="w-4 h-4 rounded bg-gray-800 border-gray-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-gray-900">
-        <span class="select-none">OCR (Metin Tanıma) Uygula <span class="text-xs text-gray-500">(Daha uzun sürer)</span></span>
-      </label>
-    </div>
     <form id="upload-form" class="hidden">
-      <input id="file-input" type="file" accept=".pdf" class="hidden" onchange="uploadFile(this)" />
+      <input id="file-input" type="file" accept=".pdf,.tiff,.tif,.jpeg,.jpg,.png" class="hidden" onchange="uploadFile(this)" />
     </form>
     <div id="upload-status" class="text-xs text-center mt-2 text-gray-500 hidden"></div>
   </footer>
@@ -133,6 +127,39 @@
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
       <img id="preview-img" src="" alt="Önizleme">
+    </div>
+  </div>
+
+  <!-- EXTRACT MODAL -->
+  <div id="extract-modal" class="modal-overlay" onclick="closeExtractModal()">
+    <div class="modal-content" style="max-width: 28rem" onclick="event.stopPropagation()">
+      <h3 class="text-lg font-bold mb-4">Çıkarma Seçenekleri</h3>
+      <p class="text-sm text-gray-400 mb-6">
+        Seçtiğiniz evraklar için Metne Dönüştürme (OCR) işlemi uygulansın mı?
+      </p>
+      
+      <!-- Progress Bar (Hidden by default) -->
+      <div id="extract-progress" class="hidden mb-6">
+        <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
+          <span>İşleniyor... Lütfen bekleyin.</span>
+          <span id="extract-spinner" class="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></span>
+        </div>
+        <div class="w-full bg-gray-800 rounded-full h-1.5">
+          <div class="bg-blue-500 h-1.5 rounded-full w-full animate-pulse"></div>
+        </div>
+      </div>
+
+      <div id="extract-actions" class="flex justify-end gap-3 hover:text-white">
+        <button class="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors" onclick="closeExtractModal()">
+          İptal
+        </button>
+        <button class="px-4 py-2 text-sm bg-gray-600 hover:bg-gray-500 text-white rounded font-semibold transition-colors" onclick="confirmExtract(false)">
+          Sadece Çıkar
+        </button>
+        <button class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded font-semibold transition-colors" onclick="confirmExtract(true)">
+          Evet, OCR Uygula
+        </button>
+      </div>
     </div>
   </div>
 
@@ -159,18 +186,15 @@
     }
 
     async function sendFile(file) {
-      if (!file.name.toLowerCase().endsWith('.pdf')) {
-        showStatus('⚠ Sadece .pdf dosyaları kabul edilir.', 'text-yellow-400');
+      const validExts = ['.pdf', '.tiff', '.tif', '.jpeg', '.jpg', '.png'];
+      const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+      if (!validExts.includes(ext)) {
+        showStatus('⚠ Desteklenmeyen veya bozuk dosya formatı. Lütfen .pdf, .tiff, .jpeg, veya .png yükleyiniz.', 'text-yellow-400');
         return;
       }
       showStatus('⏳ Yükleniyor...', 'text-gray-400');
       const form = new FormData();
       form.append('file', file);
-      
-      const ocrCheckbox = document.getElementById('ocr-checkbox');
-      if (ocrCheckbox && ocrCheckbox.checked) {
-        form.append('ocr', 'true');
-      }
 
       try {
         const res = await fetch('/upload', { method: 'POST', body: form });
@@ -362,8 +386,25 @@
       }
     }
 
-    async function doExtract() {
+    function doExtract() {
       if (!currentPdfId || selectedPages.length === 0) return;
+      document.getElementById('extract-modal').classList.add('active');
+      document.body.classList.add('modal-open');
+      document.getElementById('extract-progress').classList.add('hidden');
+      document.getElementById('extract-actions').classList.remove('hidden');
+    }
+
+    function closeExtractModal() {
+      document.getElementById('extract-modal').classList.remove('active');
+      document.body.classList.remove('modal-open');
+    }
+
+    async function confirmExtract(useOCR) {
+      if (!currentPdfId || selectedPages.length === 0) return;
+      
+      document.getElementById('extract-actions').classList.add('hidden');
+      document.getElementById('extract-progress').classList.remove('hidden');
+
       const actRotations = {};
       selectedPages.forEach(idx => { if (pageRotations[idx]) actRotations[idx] = pageRotations[idx]; });
       
@@ -374,9 +415,46 @@
       const res = await postAction('/extract', {
         pdf_id: currentPdfId, 
         page_indices: reorderedSelection, 
-        rotations: actRotations
+        rotations: actRotations,
+        ocr: useOCR
       });
-      if (res) appendToOutputList(res);
+
+      if (res) {
+        if (res.startsWith('TASK_')) {
+          pollExtractTask(res);
+        } else {
+          appendToOutputList(res);
+          closeExtractModal();
+          clearSelection();
+        }
+      } else {
+        closeExtractModal();
+      }
+    }
+
+    async function pollExtractTask(taskId) {
+        try {
+            const res = await fetch(`/extract-status/${taskId}`);
+            if (!res.ok) {
+                showStatus('✗ Sunucu hatası oluştu', 'text-red-400');
+                closeExtractModal();
+                return;
+            }
+            const data = await res.json();
+            if (data.status === "pending" || data.status === "processing") {
+                setTimeout(() => pollExtractTask(taskId), 1500);
+            } else if (data.status === "done") {
+                appendToOutputList(data.html);
+                closeExtractModal();
+                clearSelection();
+                showStatus('✓ Çıkarma işlemi tamamlandı.', 'text-green-400');
+            } else {
+                showStatus('✗ OCR Hatası: ' + data.error, 'text-red-400');
+                closeExtractModal();
+            }
+        } catch (e) {
+            closeExtractModal();
+        }
     }
 
     async function postAction(url, body) {

@@ -1,4 +1,5 @@
 .venv/
+venv
 __pycache__/
 *.pyc
 *.pyo
@@ -10,3 +11,6 @@ backend/storage/*
 .DS_Store
 notes/
 .aider*
+testResults/*.md
+
+tests/

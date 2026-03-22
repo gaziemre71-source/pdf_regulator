@@ -12,14 +12,15 @@ from pathlib import Path
 from typing import Literal
 
 import fitz  # PyMuPDF
+from functools import lru_cache
 
 # Geçici dosya dizini
 STORAGE_DIR = Path(__file__).parent.parent / "storage"
 STORAGE_DIR.mkdir(exist_ok=True)
 
-# Sayfa render önbelleği: { (pdf_id, page_num, dpi): bytes }
-_page_cache: dict[tuple, bytes] = {}
-
+def is_valid_uuid(val: str) -> bool:
+    """Girilen değerin 32 karakterli hex (UUID) olup olmadığını kontrol eder."""
+    return bool(val and len(val) == 32 and val.isalnum())
 
 def save_upload(file_bytes: bytes, original_name: str) -> tuple[str, int]:
     """Yüklenen PDF dosyasını benzersiz pdf_id ile storage'a kaydeder.
@@ -49,16 +50,24 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
         pdf_id = uuid.uuid4().hex
         dest_path = STORAGE_DIR / f"{pdf_id}_src.pdf"
         
-        proc = await asyncio.create_subprocess_exec(
-            "ocrmypdf",
-            "--force-ocr",
-            "-l", "tur+eng",
-            "--jobs", "4",
-            str(input_path),
-            str(dest_path),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "ocrmypdf",
+                "--force-ocr",
+                "-l", "tur+eng",
+                "--jobs", "4",
+                "--optimize", "0",
+                "--fast-web-view", "0",
+                str(input_path),
+                str(dest_path),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+        except FileNotFoundError:
+            OCR_TASKS[task_id]["status"] = "failed"
+            OCR_TASKS[task_id]["error"] = "OCR motoru (ocrmypdf) sistemde yüklü değil."
+            return
+
         stdout, stderr = await proc.communicate()
         
         if proc.returncode != 0:
@@ -86,15 +95,19 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
 
 def _src_path(pdf_id: str) -> Path:
     """Kaynak PDF dosyasının yolunu döner."""
+    if not is_valid_uuid(pdf_id):
+        raise ValueError(f"Geçersiz PDF ID: {pdf_id}")
+        
     path = STORAGE_DIR / f"{pdf_id}_src.pdf"
     if not path.exists():
         raise FileNotFoundError(f"PDF bulunamadı: {pdf_id}")
     return path
 
 
+@lru_cache(maxsize=128)
 def render_page(pdf_id: str, page_num: int, dpi: int = 120) -> bytes:
     """Belirtilen sayfayı PNG olarak render edip bytes döner.
-    Sonuç bellek önbelleğine alınır.
+    Sonuç bellek önbelleğine alınır (maksimum 128 sayfa).
 
     Args:
         pdf_id: Kaynak PDF kimliği
@@ -104,10 +117,6 @@ def render_page(pdf_id: str, page_num: int, dpi: int = 120) -> bytes:
     Returns:
         PNG formatında bytes
     """
-    cache_key = (pdf_id, page_num, dpi)
-    if cache_key in _page_cache:
-        return _page_cache[cache_key]
-
     path = _src_path(pdf_id)
     doc = fitz.open(str(path))
     try:
@@ -118,7 +127,6 @@ def render_page(pdf_id: str, page_num: int, dpi: int = 120) -> bytes:
     finally:
         doc.close()
 
-    _page_cache[cache_key] = png_bytes
     return png_bytes
 
 
@@ -147,6 +155,10 @@ def extract_pages(pdf_id: str, page_indices: list[int], rotations: dict[int, int
     if not valid_indices:
          src_doc.close()
          raise ValueError("Hiç geçerli sayfa seçilmedi.")
+
+    if len(valid_indices) > 500:
+         src_doc.close()
+         raise ValueError("Sistem performansını korumak için, tek seferde en fazla 500 sayfa çıkarılabilir.")
 
     new_doc = fitz.open()
     
@@ -191,6 +203,9 @@ def extract_pages(pdf_id: str, page_indices: list[int], rotations: dict[int, int
 
 def get_output_path(file_id: str) -> Path:
     """file_id'ye göre çıktı PDF dosyasının yolunu döner."""
+    if not is_valid_uuid(file_id):
+        raise ValueError(f"Geçersiz File ID: {file_id}")
+        
     matches = list(STORAGE_DIR.glob(f"{file_id}_*.pdf"))
     if not matches:
         raise FileNotFoundError(f"Çıktı dosyası bulunamadı: {file_id}")

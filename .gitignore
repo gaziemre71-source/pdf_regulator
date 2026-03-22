@@ -14,3 +14,4 @@ notes/
 testResults/*.md
 
 tests/
+.pytest_cache/

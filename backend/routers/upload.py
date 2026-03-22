@@ -4,6 +4,8 @@ from fastapi.responses import HTMLResponse
 from pathlib import Path
 import json
 import uuid
+import os
+import tempfile
 
 from backend.services import pdf_service
 
@@ -19,20 +21,44 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
     if not file.filename:
         raise HTTPException(status_code=400, detail="Dosya yüklenemedi.")
 
-    content = await file.read()
-    if len(content) == 4:
-        raise HTTPException(status_code=400, detail="Boş dosya yüklendi.")
-
+    fd, temp_path = tempfile.mkstemp()
+    temp_pdf_path = None
     try:
+        file_size = 0
+        with os.fdopen(fd, 'wb') as out_file:
+            while chunk := await file.read(1024 * 1024):  # 1MB chunks
+                file_size += len(chunk)
+                if file_size > 100 * 1024 * 1024:
+                    raise HTTPException(status_code=413, detail="Dosya boyutu 100MB sınırını aşıyor.")
+                out_file.write(chunk)
+
+        if file_size < 4:
+            raise HTTPException(status_code=400, detail="Boş dosya yüklendi.")
+
         from backend.services.preprocessor import preprocess_to_pdf
-        pdf_bytes, final_filename = preprocess_to_pdf(content, file.filename)
+        pdf_path, final_filename = preprocess_to_pdf(Path(temp_path), file.filename)
+        temp_pdf_path = str(pdf_path)
+
+        pdf_id, page_count = pdf_service.save_upload(pdf_path, final_filename)
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-    try:
-        pdf_id, page_count = pdf_service.save_upload(pdf_bytes, final_filename)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF kaydedilemedi: {e}")
+    finally:
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+        
+        if temp_pdf_path and temp_pdf_path != temp_path and os.path.exists(temp_pdf_path):
+            try:
+                os.remove(temp_pdf_path)
+            except Exception:
+                pass
 
     response = templates.TemplateResponse(
         "partials/viewer.html",

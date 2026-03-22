@@ -49,11 +49,40 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
         
         pdf_id = uuid.uuid4().hex
         dest_path = STORAGE_DIR / f"{pdf_id}_src.pdf"
+
+        # 1. Aşama Optimizasyonu: Sistem kaynaklarını korumak için PyMuPDF ile hızlı metin taraması
+        import shutil
+        doc = fitz.open(str(input_path))
+        needs_ocr = False
         
+        for page in doc:
+            # Eğer bir sayfada 15 karakterden az metin varsa, o sayfa muhtemelen taranmış bir resimdir.
+            if len(page.get_text().strip()) < 15:
+                needs_ocr = True
+                break
+                
+        page_count = len(doc)
+        doc.close()
+
+        if not needs_ocr:
+            # Belgedeki tüm sayfalarda halihazırda yeterli metin var. 
+            # OCR işlemini (ocrmypdf) tamamen atla ve dosyayı doğrudan kopyala! (0.01s sürer)
+            shutil.copy2(input_path, dest_path)
+            
+            OCR_TASKS[task_id]["status"] = "done"
+            OCR_TASKS[task_id]["pdf_id"] = pdf_id
+            OCR_TASKS[task_id]["page_count"] = page_count
+            OCR_TASKS[task_id]["filename"] = original_name
+            
+            if input_path.exists():
+                input_path.unlink()
+            return
+
+        # 2. Aşama Optimizasyonu: En az 1 resimli sayfa bulunduysa OCR başlat
         try:
             proc = await asyncio.create_subprocess_exec(
                 "ocrmypdf",
-                "--force-ocr",
+                "--skip-text",   # <-- Mixed dokümanlarda sadece resimli sayfaları OCR'dan geçirir
                 "-l", "tur+eng",
                 "--jobs", "4",
                 "--optimize", "0",

@@ -45,6 +45,10 @@ def save_upload(file_path: Path, original_name: str) -> tuple[str, int]:
 # OCR Task List
 OCR_TASKS: dict[str, dict] = {}
 
+# OCR Semaphore for controlling concurrency
+MAX_CONCURRENT_OCR = 2
+OCR_SEMAPHORE = asyncio.Semaphore(MAX_CONCURRENT_OCR)
+
 async def perform_ocr(task_id: str, input_path: Path, original_name: str):
     """Arka planda ocrmypdf kullanarak OCR işlemini gerçekleştirir."""
     try:
@@ -83,28 +87,28 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
 
         # 2. Aşama Optimizasyonu: En az 1 resimli sayfa bulunduysa OCR başlat
         try:
-            proc = await asyncio.create_subprocess_exec(
-                "ocrmypdf",
-                "--skip-text",   # <-- Mixed dokümanlarda sadece resimli sayfaları OCR'dan geçirir
-                "-l", "tur+eng",
-                "--jobs", "4",
-                "--optimize", "0",
-                "--fast-web-view", "0",
-                str(input_path),
-                str(dest_path),
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
+            async with OCR_SEMAPHORE:
+                proc = await asyncio.create_subprocess_exec(
+                    "ocrmypdf",
+                    "--skip-text",   # <-- Mixed dokümanlarda sadece resimli sayfaları OCR'dan geçirir
+                    "-l", "tur+eng",
+                    "--jobs", "1",
+                    "--optimize", "0",
+                    "--fast-web-view", "0",
+                    str(input_path),
+                    str(dest_path),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await proc.communicate()
+                
+                if proc.returncode != 0:
+                    OCR_TASKS[task_id]["status"] = "failed"
+                    OCR_TASKS[task_id]["error"] = stderr.decode('utf-8', errors='replace')
+                    return
         except FileNotFoundError:
             OCR_TASKS[task_id]["status"] = "failed"
             OCR_TASKS[task_id]["error"] = "OCR motoru (ocrmypdf) sistemde yüklü değil."
-            return
-
-        stdout, stderr = await proc.communicate()
-        
-        if proc.returncode != 0:
-            OCR_TASKS[task_id]["status"] = "failed"
-            OCR_TASKS[task_id]["error"] = stderr.decode('utf-8', errors='replace')
             return
             
         doc = fitz.open(str(dest_path))

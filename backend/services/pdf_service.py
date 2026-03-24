@@ -42,18 +42,14 @@ def save_upload(file_path: Path, original_name: str) -> tuple[str, int]:
 
     return pdf_id, page_count
 
-# OCR Task List
-OCR_TASKS: dict[str, dict] = {}
-
 # OCR Semaphore for controlling concurrency
 MAX_CONCURRENT_OCR = 2
 OCR_SEMAPHORE = asyncio.Semaphore(MAX_CONCURRENT_OCR)
+from backend import database
 
 async def perform_ocr(task_id: str, input_path: Path, original_name: str):
     """Arka planda ocrmypdf kullanarak OCR işlemini gerçekleştirir."""
     try:
-        OCR_TASKS[task_id]["status"] = "processing"
-        
         pdf_id = uuid.uuid4().hex
         dest_path = STORAGE_DIR / f"{pdf_id}_src.pdf"
 
@@ -76,10 +72,7 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
             # OCR işlemini (ocrmypdf) tamamen atla ve dosyayı doğrudan kopyala! (0.01s sürer)
             shutil.copy2(input_path, dest_path)
             
-            OCR_TASKS[task_id]["status"] = "done"
-            OCR_TASKS[task_id]["pdf_id"] = pdf_id
-            OCR_TASKS[task_id]["page_count"] = page_count
-            OCR_TASKS[task_id]["filename"] = original_name
+            database.update_task_success(task_id, pdf_id, page_count, original_name)
             
             if input_path.exists():
                 input_path.unlink()
@@ -103,26 +96,20 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
                 stdout, stderr = await proc.communicate()
                 
                 if proc.returncode != 0:
-                    OCR_TASKS[task_id]["status"] = "failed"
-                    OCR_TASKS[task_id]["error"] = stderr.decode('utf-8', errors='replace')
+                    database.update_task_failure(task_id, stderr.decode('utf-8', errors='replace'))
                     return
         except FileNotFoundError:
-            OCR_TASKS[task_id]["status"] = "failed"
-            OCR_TASKS[task_id]["error"] = "OCR motoru (ocrmypdf) sistemde yüklü değil."
+            database.update_task_failure(task_id, "OCR motoru (ocrmypdf) sistemde yüklü değil.")
             return
             
         doc = fitz.open(str(dest_path))
         page_count = len(doc)
         doc.close()
         
-        OCR_TASKS[task_id]["status"] = "done"
-        OCR_TASKS[task_id]["pdf_id"] = pdf_id
-        OCR_TASKS[task_id]["page_count"] = page_count
-        OCR_TASKS[task_id]["filename"] = original_name
+        database.update_task_success(task_id, pdf_id, page_count, original_name)
         
     except Exception as e:
-        OCR_TASKS[task_id]["status"] = "failed"
-        OCR_TASKS[task_id]["error"] = str(e)
+        database.update_task_failure(task_id, str(e))
     finally:
         if input_path.exists():
             input_path.unlink()

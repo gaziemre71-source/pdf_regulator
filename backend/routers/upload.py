@@ -8,6 +8,7 @@ import os
 import tempfile
 
 from backend.services import pdf_service
+from backend import database
 
 router = APIRouter()
 templates = Jinja2Templates(
@@ -80,7 +81,7 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
 
 @router.get("/ocr-status/{task_id}")
 async def get_ocr_status(request: Request, task_id: str):
-    task = pdf_service.OCR_TASKS.get(task_id)
+    task = database.get_task(task_id)
     if not task:
         return HTMLResponse("<div class='text-red-500 flex justify-center items-center h-full'>Task bulunamadı.</div>")
     
@@ -100,7 +101,7 @@ async def get_ocr_status(request: Request, task_id: str):
         """)
         
     elif status == "failed":
-        err = task.get("error", "Bilinmeyen Hata")
+        err = task.get("error_message", "Bilinmeyen Hata")
         return HTMLResponse(f"<div class='text-red-500 flex justify-center items-center h-full'>OCR Hatası: {err}</div>")
         
     elif status == "done":

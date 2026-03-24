@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 
 from backend.routers import upload, pages, extract, download
 from backend.services.pdf_service import STORAGE_DIR
+from backend.database import init_db, cleanup_orphan_tasks
 
 BASE_DIR = Path(__file__).parent.parent
 TEMPLATES_DIR = BASE_DIR / "frontend" / "templates"
@@ -36,6 +37,9 @@ async def cleanup_old_files():
 async def lifespan(app: FastAPI):
     """Uygulama yaşam döngüsü — storage dizinini kontrol et ve temizlik görevini başlat."""
     STORAGE_DIR.mkdir(exist_ok=True)
+    init_db()
+    cleanup_orphan_tasks()
+    
     cleanup_task = asyncio.create_task(cleanup_old_files())
     yield
     cleanup_task.cancel()

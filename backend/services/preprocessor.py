@@ -1,8 +1,9 @@
 import fitz
 import os
+import tempfile
 from pathlib import Path
 
-def preprocess_to_pdf(content: bytes, original_filename: str) -> tuple[bytes, str]:
+def preprocess_to_pdf(filepath: Path, original_filename: str) -> tuple[Path, str]:
     """
     Magic bytes üzerinden dosyanın türünü tespit eder.
     Eğer resim dosyasıysa fitz aracılığıyla PDF'e dönüştürür.
@@ -11,8 +12,11 @@ def preprocess_to_pdf(content: bytes, original_filename: str) -> tuple[bytes, st
     Desteklenmeyen veya bozuksa ValueError fırlatır.
     
     Returns:
-        (pdf_bytes, final_filename)
+        (pdf_path, final_filename)
     """
+    with open(filepath, "rb") as f:
+        content = f.read(2048)
+        
     if len(content) < 4:
         raise ValueError("Desteklenmeyen veya bozuk dosya formatı. Lütfen .pdf, .tiff, .jpeg, .jpg veya .png yükleyiniz.")
         
@@ -34,17 +38,22 @@ def preprocess_to_pdf(content: bytes, original_filename: str) -> tuple[bytes, st
     if filetype == "pdf":
         try:
             # Sadece bozuk olup olmadığını anlamak için parse et
-            doc = fitz.open("pdf", content)
+            doc = fitz.open(str(filepath))
             doc.close()
-            return content, final_filename
+            return filepath, final_filename
         except Exception:
             raise ValueError("Bozuk PDF dosyası. Lütfen geçerli bir belge yükleyiniz.")
             
     # Görsel dosya, pdf'e çevir
     try:
-        doc = fitz.open(stream=content, filetype=filetype)
+        doc = fitz.open(str(filepath))
         pdf_bytes = doc.convert_to_pdf()
         doc.close()
-        return pdf_bytes, final_filename
+        
+        fd, temp_pdf_path = tempfile.mkstemp(suffix=".pdf")
+        with os.fdopen(fd, 'wb') as f:
+            f.write(pdf_bytes)
+            
+        return Path(temp_pdf_path), final_filename
     except Exception as e:
         raise ValueError(f"Görsel pdf'e çevrilemedi: {e}")

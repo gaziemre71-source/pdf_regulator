@@ -22,15 +22,18 @@ def is_valid_uuid(val: str) -> bool:
     """Girilen değerin 32 karakterli hex (UUID) olup olmadığını kontrol eder."""
     return bool(val and len(val) == 32 and val.isalnum())
 
-def save_upload(file_bytes: bytes, original_name: str) -> tuple[str, int]:
+def save_upload(file_path: Path, original_name: str) -> tuple[str, int]:
     """Yüklenen PDF dosyasını benzersiz pdf_id ile storage'a kaydeder.
 
     Returns:
         (pdf_id, page_count)
     """
+    import shutil
     pdf_id = uuid.uuid4().hex
     dest = STORAGE_DIR / f"{pdf_id}_src.pdf"
-    dest.write_bytes(file_bytes)
+    
+    STORAGE_DIR.mkdir(exist_ok=True)
+    shutil.move(str(file_path), str(dest))
 
     # Sayfa sayısını al
     doc = fitz.open(str(dest))

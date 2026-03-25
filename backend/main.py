@@ -8,9 +8,10 @@ import asyncio
 import time
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+import logging
 
 from backend.routers import upload, pages, extract, download
-from backend.services.pdf_service import STORAGE_DIR
+from backend.services.pdf_service import STORAGE_DIR, is_file_locked
 from backend.database import init_db, cleanup_orphan_tasks
 
 BASE_DIR = Path(__file__).parent.parent
@@ -24,13 +25,18 @@ async def cleanup_old_files():
         try:
             now = time.time()
             for p in STORAGE_DIR.glob("*.pdf"):
-                if now - p.stat().st_mtime > 3600:
-                    try:
-                        p.unlink()
-                    except Exception:
-                        pass
-        except Exception:
-            pass
+                try:
+                    if now - p.stat().st_mtime > 3600:
+                        if is_file_locked(p):
+                            continue
+                        try:
+                            p.unlink()
+                        except Exception as e:
+                            logging.error(f"Cleanup loop: {p} silinirken hata oluştu: {e}")
+                except Exception as e:
+                    logging.error(f"Cleanup loop: {p} statokunurken hata oluştu: {e}")
+        except Exception as e:
+            logging.error(f"Cleanup loop genel hata: {e}")
         await asyncio.sleep(3600)
 
 @asynccontextmanager

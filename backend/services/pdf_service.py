@@ -110,7 +110,9 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
                     "--skip-text",   # <-- Mixed dokümanlarda sadece resimli sayfaları OCR'dan geçirir
                     "-l", "tur+eng",
                     "--jobs", "1",
-                    "--optimize", "0",
+                    "--deskew",      # Sayfaları düzeltir (eğikliği giderir)
+                    "--clean",       # Gürültü ve artifact'leri temizler
+                    "--optimize", "1", # Dosya boyutunu küçültür ve binarize eder
                     "--fast-web-view", "0",
                     str(input_path),
                     str(dest_path),

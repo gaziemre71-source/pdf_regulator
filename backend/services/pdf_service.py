@@ -161,10 +161,9 @@ def _src_path(pdf_id: str) -> Path:
     return path
 
 
-@lru_cache(maxsize=128)
-def render_page(pdf_id: str, page_num: int, dpi: int = 120) -> bytes:
-    """Belirtilen sayfayı PNG olarak render edip bytes döner.
-    Sonuç bellek önbelleğine alınır (maksimum 128 sayfa).
+def render_page(pdf_id: str, page_num: int, dpi: int = 120) -> Path:
+    """Belirtilen sayfayı PNG olarak render edip diskte önbelleğe alır ve dosya yolunu döner.
+    Sonuç STORAGE_DIR içinde saklanır.
 
     Args:
         pdf_id: Kaynak PDF kimliği
@@ -172,9 +171,14 @@ def render_page(pdf_id: str, page_num: int, dpi: int = 120) -> bytes:
         dpi: Render çözünürlüğü (varsayılan 120)
 
     Returns:
-        PNG formatında bytes
+        Oluşturulan veya var olan PNG dosyasının Path nesnesi
     """
     path = _src_path(pdf_id)
+    out_path = STORAGE_DIR / f"{pdf_id}_page_{page_num}_{dpi}.png"
+
+    if out_path.exists():
+        return out_path
+
     with lock_file(path):
         doc = fitz.open(str(path))
         try:
@@ -182,10 +186,13 @@ def render_page(pdf_id: str, page_num: int, dpi: int = 120) -> bytes:
             mat = fitz.Matrix(dpi / 72, dpi / 72)
             pix = page.get_pixmap(matrix=mat, alpha=False)
             png_bytes = pix.tobytes("png")
+            
+            with open(out_path, "wb") as f:
+                f.write(png_bytes)
         finally:
             doc.close()
 
-    return png_bytes
+    return out_path
 
 
 def extract_pages(pdf_id: str, page_indices: list[int], rotations: dict[int, int] = None) -> tuple[str, str]:

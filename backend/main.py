@@ -21,10 +21,11 @@ STATIC_DIR = BASE_DIR / "frontend" / "static"
 
 async def cleanup_old_files():
     """Her saat başı, 1 saatten eski storage dosyalarını temizler."""
+    import itertools
     while True:
         try:
             now = time.time()
-            for p in STORAGE_DIR.glob("*.pdf"):
+            for p in itertools.chain(STORAGE_DIR.glob("*.pdf"), STORAGE_DIR.glob("*.png")):
                 try:
                     if now - p.stat().st_mtime > 3600:
                         if is_file_locked(p):

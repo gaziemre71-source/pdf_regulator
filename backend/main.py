@@ -1,5 +1,5 @@
 """
-FastAPI application — PDF Selector & Rotator
+FastAPI application — PDF Regulator
 """
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -52,8 +52,8 @@ async def lifespan(app: FastAPI):
     cleanup_task.cancel()
 
 app = FastAPI(
-    title="PDF Selector & Rotator",
-    description="Lightweight PDF tool for page selection, extraction, and rotation.",
+    title="PDF Regulator",
+    description="Professional PDF tool to extract, rotate, and optimize pages with advanced text recognition and cleanup.",
     version="1.0.0",
     lifespan=lifespan,
 )

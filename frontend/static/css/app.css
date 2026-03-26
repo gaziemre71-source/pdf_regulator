@@ -1,4 +1,4 @@
-/* PDF Selector & Rotator — Custom styles */
+/* PDF Regulator — Custom styles */
 
 /* ─── Page card ─────────────────────────────────── */
 .page-card {
@@ -8,12 +8,14 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  border: 2px solid #1f2937; /* gray-800 */
+  border: 2px solid #1f2937;
+  /* gray-800 */
   border-radius: 12px;
   padding: 8px;
   background: #111827;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  width: 160px; /* Fixed width for thumbnail view */
+  width: 160px;
+  /* Fixed width for thumbnail view */
   min-width: 160px;
   flex-shrink: 0;
   user-select: none;
@@ -25,7 +27,8 @@
 }
 
 .page-card.selected {
-  border-color: #ef4444; /* red-500 */
+  border-color: #ef4444;
+  /* red-500 */
   background: rgba(239, 68, 68, 0.12);
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
 }
@@ -38,16 +41,18 @@
 }
 
 .page-card.selected .page-number {
-  color: #f87171; /* red-400 */
+  color: #f87171;
+  /* red-400 */
 }
 
 .page-img {
   width: 100%;
   height: auto;
-  aspect-ratio: 1 / 1.414; /* A4 size simulation */
+  aspect-ratio: 1 / 1.414;
+  /* A4 size simulation */
   object-fit: cover;
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   display: block;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   background: #1f2937;
@@ -256,7 +261,8 @@ body.modal-open {
 .delete-btn-inline {
   background: rgba(255, 255, 255, 0.1);
   border: none;
-  color: #f87171; /* red-400 */
+  color: #f87171;
+  /* red-400 */
   width: 22px;
   height: 22px;
   display: flex;
@@ -268,18 +274,21 @@ body.modal-open {
 }
 
 .delete-btn-inline:hover {
-  background: #ef4444; /* red-500 */
+  background: #ef4444;
+  /* red-500 */
   color: #fff;
 }
 
 .deleted-page {
-  border-color: #374151 !important; /* disabled look */
+  border-color: #374151 !important;
+  /* disabled look */
   background: #111827 !important;
   box-shadow: none !important;
-  pointer-events: none; /* disable card interactions */
+  pointer-events: none;
+  /* disable card interactions */
 }
 
-.deleted-page > *:not(.restore-overlay) {
+.deleted-page>*:not(.restore-overlay) {
   opacity: 0.3;
   filter: grayscale(100%);
 }
@@ -291,7 +300,8 @@ body.modal-open {
   align-items: center;
   justify-content: center;
   opacity: 0;
-  pointer-events: none; /* Only allow pointer events when the card is deleted */
+  pointer-events: none;
+  /* Only allow pointer events when the card is deleted */
   z-index: 20;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -299,9 +309,11 @@ body.modal-open {
 
 .deleted-page .restore-overlay {
   opacity: 1;
-  pointer-events: auto; /* Active only in deleted state */
+  pointer-events: auto;
+  /* Active only in deleted state */
 }
 
 .deleted-page .restore-overlay:hover span {
-  background: #3b82f6; /* Hover highlight to restore */
+  background: #3b82f6;
+  /* Hover highlight to restore */
 }

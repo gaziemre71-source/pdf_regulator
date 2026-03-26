@@ -205,12 +205,12 @@
         
         document.getElementById('viewer').innerHTML = await res.text();
         
-        // HTMX polling elementini tetikle
+        // Trigger HTMX polling element
         if (typeof htmx !== 'undefined') {
           htmx.process(document.getElementById('viewer'));
         }
 
-        // Fetch çağrısında HX-Trigger başlığını manuel tara (Orijinal hızlı yüklemede viewerReady tetiklemek için)
+        // Manually scan HX-Trigger header in Fetch call (To trigger viewerReady on original fast load)
         const triggerHeader = res.headers.get("HX-Trigger");
         if (triggerHeader) {
           try {
@@ -336,7 +336,7 @@
     }
 
     function deletePage(event, pageIndex) {
-      event.stopPropagation(); // Kartın seçilmesini engelle
+      event.stopPropagation(); // Prevent card from being selected
       pageIndex = parseInt(pageIndex);
       deletedPages.add(pageIndex);
       

@@ -64,7 +64,7 @@ MAX_CONCURRENT_OCR = 2
 OCR_SEMAPHORE = asyncio.Semaphore(MAX_CONCURRENT_OCR)
 from backend import database
 
-async def perform_ocr(task_id: str, input_path: Path, original_name: str):
+async def perform_ocr(task_id: str, input_path: Path, original_name: str, ocr_lang: str = "tur+eng"):
     """Performs OCR in the background using ocrmypdf."""
     success = False
     dest_path = None
@@ -108,12 +108,12 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
                 proc = await asyncio.create_subprocess_exec(
                     "ocrmypdf",
                     "--skip-text",   # Run OCR only on image pages in mixed documents
-                    "-l", "tur+eng",
+                    "-l", ocr_lang,
                     # Speed optimization: Removed --jobs 1, all CPU cores will be used
                     # Commented out --deskew and --clean because they slow down process significantly
                     # "--deskew",      # Fixes page orientation (deskew) -> VERY SLOW
                     # "--clean",       # Cleans noise -> VERY SLOW
-                    "--optimize", "1", # Reduces file size
+                    "--optimize", "0", # Reduces file size. 0 for HF
                     "--fast-web-view", "0",
                     str(input_path),
                     str(dest_path),

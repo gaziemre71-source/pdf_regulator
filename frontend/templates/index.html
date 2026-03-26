@@ -138,9 +138,25 @@
   <div id="extract-modal" class="modal-overlay" onclick="closeExtractModal()">
     <div class="modal-content bg-gray-900 border border-gray-800 rounded-2xl p-8 flex flex-col shadow-2xl"
       style="max-width: 32rem" onclick="event.stopPropagation()">
-      <p class="text-xl text-white font-medium text-center leading-relaxed mb-8">
+      <p class="text-xl text-white font-medium text-center leading-relaxed mb-6">
         Do you want to apply text recognition by repairing and cleaning the selected documents?
       </p>
+
+      <!-- Language Selector (only relevant when using OCR) -->
+      <div id="ocr-lang-selector" class="mb-6">
+        <p class="text-xs text-gray-400 text-center mb-2 uppercase tracking-widest">OCR Language</p>
+        <div class="flex justify-center gap-2">
+          <button id="lang-btn-tur"
+            class="lang-btn lang-btn-active px-4 py-1.5 text-xs rounded-full border transition-colors"
+            onclick="setOcrLang('tur', this)">🇹🇷 Turkish</button>
+          <button id="lang-btn-eng"
+            class="lang-btn px-4 py-1.5 text-xs rounded-full border transition-colors"
+            onclick="setOcrLang('eng', this)">🇬🇧 English</button>
+          <button id="lang-btn-both"
+            class="lang-btn px-4 py-1.5 text-xs rounded-full border transition-colors"
+            onclick="setOcrLang('tur+eng', this)">🌐 Both</button>
+        </div>
+      </div>
 
       <!-- Progress Bar (Hidden by default) -->
       <div id="extract-progress" class="hidden w-full mb-6">
@@ -182,6 +198,15 @@
     let lastClickedPageIdx = null;
     let pageRotations = {};
     let sortableInstance = null;
+    let selectedOcrLang = 'tur'; // default: fastest single-language
+
+    function setOcrLang(lang, btn) {
+      selectedOcrLang = lang;
+      document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.remove('lang-btn-active');
+      });
+      btn.classList.add('lang-btn-active');
+    }
 
     function handleDrop(e) {
       e.preventDefault();
@@ -397,17 +422,20 @@
       }
     }
 
+    function closeExtractModal() {
+      document.getElementById('extract-modal').classList.remove('active');
+      document.body.classList.remove('modal-open');
+    }
+
     function doExtract() {
       if (!currentPdfId || selectedPages.length === 0) return;
+      // Reset language selector to default (Turkish) each time modal opens
+      setOcrLang('tur', document.getElementById('lang-btn-tur'));
       document.getElementById('extract-modal').classList.add('active');
       document.body.classList.add('modal-open');
       document.getElementById('extract-progress').classList.add('hidden');
       document.getElementById('extract-actions').classList.remove('hidden');
-    }
-
-    function closeExtractModal() {
-      document.getElementById('extract-modal').classList.remove('active');
-      document.body.classList.remove('modal-open');
+      document.getElementById('ocr-lang-selector').classList.remove('hidden');
     }
 
     async function confirmExtract(useOCR) {
@@ -427,7 +455,8 @@
         pdf_id: currentPdfId,
         page_indices: reorderedSelection,
         rotations: actRotations,
-        ocr: useOCR
+        ocr: useOCR,
+        ocr_lang: selectedOcrLang
       });
 
       if (res) {

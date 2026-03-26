@@ -18,11 +18,14 @@ templates = Jinja2Templates(
 )
 
 
+ALLOWED_OCR_LANGS = {"tur", "eng", "tur+eng"}
+
 class ExtractRequest(BaseModel):
     pdf_id: str
     page_indices: list[int]  # 0-based list of selected pages
     rotations: dict[int, int] = {} # page_index: angle
     ocr: bool = False
+    ocr_lang: str = "tur+eng"  # Tesseract language(s): "tur", "eng", or "tur+eng"
 
 
 @router.post("/extract")
@@ -44,11 +47,12 @@ async def extract_pages(req: ExtractRequest, background_tasks: BackgroundTasks, 
     label = f"{count} Pages" if count > 1 else f"Page {req.page_indices[0] + 1}"
 
     if req.ocr:
+        lang = req.ocr_lang if req.ocr_lang in ALLOWED_OCR_LANGS else "tur+eng"
         task_id = "TASK_" + uuid.uuid4().hex
         input_path = pdf_service.get_output_path(file_id)
         
         database.create_task(task_id, filename, label)
-        background_tasks.add_task(pdf_service.perform_ocr, task_id, input_path, filename)
+        background_tasks.add_task(pdf_service.perform_ocr, task_id, input_path, filename, lang)
         
         from fastapi.responses import PlainTextResponse
         return PlainTextResponse(task_id)

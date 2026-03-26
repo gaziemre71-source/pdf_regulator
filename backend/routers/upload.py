@@ -18,9 +18,9 @@ templates = Jinja2Templates(
 
 @router.post("/upload")
 async def upload_pdf(request: Request, file: UploadFile = File(...)):
-    """PDF veya Resim dosyasını yükler, viewer HTML parçasını döner."""
+    """Uploads a PDF or Image file, returns the viewer HTML fragment."""
     if not file.filename:
-        raise HTTPException(status_code=400, detail="Dosya yüklenemedi.")
+        raise HTTPException(status_code=400, detail="File could not be uploaded.")
 
     fd, temp_path = tempfile.mkstemp()
     temp_pdf_path = None
@@ -30,11 +30,11 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
             while chunk := await file.read(1024 * 1024):  # 1MB chunks
                 file_size += len(chunk)
                 if file_size > 100 * 1024 * 1024:
-                    raise HTTPException(status_code=413, detail="Dosya boyutu 100MB sınırını aşıyor.")
+                    raise HTTPException(status_code=413, detail="File size exceeds the 100MB limit.")
                 out_file.write(chunk)
 
         if file_size < 4:
-            raise HTTPException(status_code=400, detail="Boş dosya yüklendi.")
+            raise HTTPException(status_code=400, detail="Empty file uploaded.")
 
         from backend.services.preprocessor import preprocess_to_pdf
         pdf_path, final_filename = preprocess_to_pdf(Path(temp_path), file.filename)
@@ -47,7 +47,7 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF kaydedilemedi: {e}")
+        raise HTTPException(status_code=500, detail=f"PDF could not be saved: {e}")
     finally:
         if os.path.exists(temp_path):
             try:
@@ -71,7 +71,7 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
             "filename": final_filename,
         },
     )
-    # HTMX için viewerReady event'ini tetikle
+    # Trigger viewerReady event for HTMX
     response.headers["HX-Trigger"] = json.dumps({
         "viewerReady": {
             "pdfId": pdf_id, 
@@ -84,7 +84,7 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
 async def get_ocr_status(request: Request, task_id: str):
     task = database.get_task(task_id)
     if not task:
-        return HTMLResponse("<div class='text-red-500 flex justify-center items-center h-full'>Task bulunamadı.</div>")
+        return HTMLResponse("<div class='text-red-500 flex justify-center items-center h-full'>Task not found.</div>")
     
     status = task.get("status")
     
@@ -96,14 +96,14 @@ async def get_ocr_status(request: Request, task_id: str):
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
             </svg>
-            <p class="text-lg font-semibold animate-pulse">OCR İşlemi Yapılıyor...</p>
-            <p class="text-sm">Bu işlem dosya boyutuna göre birkaç dakika sürebilir.</p>
+            <p class="text-lg font-semibold animate-pulse">Processing OCR...</p>
+            <p class="text-sm">This may take a few minutes depending on the file size.</p>
         </div>
         """)
         
     elif status == "failed":
-        err = task.get("error_message", "Bilinmeyen Hata")
-        return HTMLResponse(f"<div class='text-red-500 flex justify-center items-center h-full'>OCR Hatası: {err}</div>")
+        err = task.get("error_message", "Unknown Error")
+        return HTMLResponse(f"<div class='text-red-500 flex justify-center items-center h-full'>OCR Error: {err}</div>")
         
     elif status == "done":
         pdf_id = task.get("pdf_id")

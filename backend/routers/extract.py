@@ -1,7 +1,7 @@
 """
 Extract endpoint — POST /extract
-Seçili sayfa aralığını yeni PDF olarak çıkarır.
-Yanıt: HTMX ile sol panele eklenen HTML parçası.
+Extracts the selected page range as a new PDF.
+Response: HTML fragment added to the left panel via HTMX.
 """
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from fastapi.templating import Jinja2Templates
@@ -20,28 +20,28 @@ templates = Jinja2Templates(
 
 class ExtractRequest(BaseModel):
     pdf_id: str
-    page_indices: list[int]  # 0-tabanlı seçili sayfalar listesi
-    rotations: dict[int, int] = {} # sayfa_indeksi: açı
+    page_indices: list[int]  # 0-based list of selected pages
+    rotations: dict[int, int] = {} # page_index: angle
     ocr: bool = False
 
 
 @router.post("/extract")
 async def extract_pages(req: ExtractRequest, background_tasks: BackgroundTasks, request: Request):
-    """Seçili sayfaları çıkarır, sol panel HTML parçası döner."""
+    """Extracts selected pages, returns the left panel HTML fragment."""
     if not req.page_indices:
-        raise HTTPException(status_code=400, detail="Hiç sayfa seçilmedi.")
+        raise HTTPException(status_code=400, detail="No pages selected.")
 
     try:
         file_id, filename = pdf_service.extract_pages(
             req.pdf_id, req.page_indices, req.rotations
         )
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Kaynak PDF bulunamadı.")
+        raise HTTPException(status_code=404, detail="Source PDF not found.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF çıkarma hatası: {e}")
+        raise HTTPException(status_code=500, detail=f"PDF extraction error: {e}")
 
     count = len(req.page_indices)
-    label = f"{count} Sayfa" if count > 1 else f"Sayfa {req.page_indices[0] + 1}"
+    label = f"{count} Pages" if count > 1 else f"Page {req.page_indices[0] + 1}"
 
     if req.ocr:
         task_id = "TASK_" + uuid.uuid4().hex
@@ -66,20 +66,20 @@ async def extract_pages(req: ExtractRequest, background_tasks: BackgroundTasks, 
 
 @router.get("/extract-status/{task_id}")
 async def get_extract_status(task_id: str, request: Request):
-    """Extraction sırasında yapılan OCR'ın durumunu döner."""
+    """Returns the status of OCR performed during extraction."""
     task = database.get_task(task_id)
     if not task:
-        return {"status": "error", "error": "Task bulunamadı."}
+        return {"status": "error", "error": "Task not found."}
     
     status = task.get("status")
     if status in ["pending", "processing"]:
         return {"status": status}
     elif status == "failed":
-        return {"status": "error", "error": task.get("error_message", "Bilinmeyen Hata")}
+        return {"status": "error", "error": task.get("error_message", "Unknown Error")}
     elif status == "done":
         pdf_id = task.get("pdf_id")
         filename = task.get("filename")
-        label = task.get("label", "OCR Sonucu")
+        label = task.get("label", "OCR Result")
         
         html_response = templates.TemplateResponse(
             request=request,

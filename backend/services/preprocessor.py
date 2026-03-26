@@ -5,11 +5,11 @@ from pathlib import Path
 
 def preprocess_to_pdf(filepath: Path, original_filename: str) -> tuple[Path, str]:
     """
-    Magic bytes üzerinden dosyanın türünü tespit eder.
-    Eğer resim dosyasıysa fitz aracılığıyla PDF'e dönüştürür.
-    Zaten PDF ise doğruluğunu teyit edip bytes döner.
+    Detects the file type via magic bytes.
+    If it is an image file, converts it to PDF via fitz.
+    If it is already a PDF, verifies its integrity and returns bytes.
     
-    Desteklenmeyen veya bozuksa ValueError fırlatır.
+    Raises ValueError if unsupported or corrupted.
     
     Returns:
         (pdf_path, final_filename)
@@ -18,7 +18,7 @@ def preprocess_to_pdf(filepath: Path, original_filename: str) -> tuple[Path, str
         content = f.read(2048)
         
     if len(content) < 4:
-        raise ValueError("Desteklenmeyen veya bozuk dosya formatı. Lütfen .pdf, .tiff, .jpeg, .jpg veya .png yükleyiniz.")
+        raise ValueError("Unsupported or corrupted file format. Please upload .pdf, .tiff, .jpeg, .jpg or .png.")
         
     # Magic Bytes Check
     if content.startswith(b"%PDF-"):
@@ -30,21 +30,21 @@ def preprocess_to_pdf(filepath: Path, original_filename: str) -> tuple[Path, str
     elif content.startswith(b"II*\x00") or content.startswith(b"MM\x00*"):
         filetype = "tiff"
     else:
-        raise ValueError("Desteklenmeyen veya bozuk dosya formatı. Lütfen .pdf, .tiff, .jpeg, .jpg veya .png yükleyiniz.")
+        raise ValueError("Unsupported or corrupted file format. Please upload .pdf, .tiff, .jpeg, .jpg or .png.")
         
     base_name = os.path.splitext(original_filename)[0]
     final_filename = f"{base_name}.pdf"
     
     if filetype == "pdf":
         try:
-            # Sadece bozuk olup olmadığını anlamak için parse et
+            # Parse only to check if it is corrupted
             doc = fitz.open(str(filepath))
             doc.close()
             return filepath, final_filename
         except Exception:
-            raise ValueError("Bozuk PDF dosyası. Lütfen geçerli bir belge yükleyiniz.")
+            raise ValueError("Corrupted PDF file. Please upload a valid document.")
             
-    # Görsel dosya, pdf'e çevir
+    # Image file, convert to pdf
     try:
         doc = fitz.open(str(filepath))
         pdf_bytes = doc.convert_to_pdf()
@@ -56,4 +56,4 @@ def preprocess_to_pdf(filepath: Path, original_filename: str) -> tuple[Path, str
             
         return Path(temp_pdf_path), final_filename
     except Exception as e:
-        raise ValueError(f"Görsel pdf'e çevrilemedi: {e}")
+        raise ValueError(f"Could not convert image to pdf: {e}")

@@ -1,6 +1,6 @@
-/* PDF Selector & Rotator — Özel stiller */
+/* PDF Selector & Rotator — Custom styles */
 
-/* ─── Sayfa kartı ─────────────────────────────────── */
+/* ─── Page card ─────────────────────────────────── */
 .page-card {
   position: relative;
   display: flex;
@@ -13,7 +13,7 @@
   padding: 8px;
   background: #111827;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  width: 160px; /* Sabit genişlik thumbnail görünümü için */
+  width: 160px; /* Fixed width for thumbnail view */
   min-width: 160px;
   flex-shrink: 0;
   user-select: none;
@@ -44,7 +44,7 @@
 .page-img {
   width: 100%;
   height: auto;
-  aspect-ratio: 1 / 1.414; /* A4 boyutu simülasyonu */
+  aspect-ratio: 1 / 1.414; /* A4 size simulation */
   object-fit: cover;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
@@ -105,7 +105,7 @@
   background: #3b82f6;
 }
 
-/* ─── Araç çubuğu butonları ──────────────────────── */
+/* ─── Toolbar buttons ──────────────────────── */
 .action-btn {
   padding: 5px 14px;
   font-size: 13px;
@@ -124,7 +124,7 @@
   border-color: #4b5563;
 }
 
-/* ─── Sol panel: pdf item ─────────────────────────── */
+/* ─── Left panel: pdf item ─────────────────────────── */
 .pdf-item {
   background: #111827;
   border: 1px solid #1f2937;
@@ -221,7 +221,7 @@ body.modal-open {
   overflow: hidden;
 }
 
-/* ─── Scrollbar özelleştirme ─────────────────────── */
+/* ─── Custom scrollbar ─────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -239,7 +239,7 @@ body.modal-open {
   background: #2563eb;
 }
 
-/* ─── Sortable Ghost (Sürüklenen öğe hayaleti) ────── */
+/* ─── Sortable Ghost ────── */
 .sortable-ghost {
   opacity: 0.3;
   background: #3b82f6 !important;

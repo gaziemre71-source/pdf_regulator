@@ -1,9 +1,9 @@
 """
-PDF işlem servisi — PyMuPDF (fitz) kullanarak:
-- PDF yükleme & kaydetme
-- Sayfa PNG olarak render etme (bellek önbelleği)
-- Sayfa aralığı çıkarma
-- Sayfa döndürme
+PDF processing service — using PyMuPDF (fitz):
+- PDF upload & save
+- Render page as PNG (memory cache)
+- Extract page range
+- Rotate page
 """
 import uuid
 import io
@@ -30,16 +30,16 @@ def lock_file(filepath: Path):
 def is_file_locked(filepath: Path) -> bool:
     return str(filepath.resolve()) in ACTIVE_FILE_LOCKS
 
-# Geçici dosya dizini
+# Temporary file directory
 STORAGE_DIR = Path(__file__).parent.parent / "storage"
 STORAGE_DIR.mkdir(exist_ok=True)
 
 def is_valid_uuid(val: str) -> bool:
-    """Girilen değerin 32 karakterli hex (UUID) olup olmadığını kontrol eder."""
+    """Checks if the entered value is a 32-character hex (UUID)."""
     return bool(val and len(val) == 32 and val.isalnum())
 
 def save_upload(file_path: Path, original_name: str) -> tuple[str, int]:
-    """Yüklenen PDF dosyasını benzersiz pdf_id ile storage'a kaydeder.
+    """Saves the uploaded PDF file to storage with a unique pdf_id.
 
     Returns:
         (pdf_id, page_count)
@@ -51,7 +51,7 @@ def save_upload(file_path: Path, original_name: str) -> tuple[str, int]:
     STORAGE_DIR.mkdir(exist_ok=True)
     shutil.move(str(file_path), str(dest))
 
-    # Sayfa sayısını al
+    # Get page count
     with lock_file(dest):
         doc = fitz.open(str(dest))
         page_count = len(doc)
@@ -65,21 +65,21 @@ OCR_SEMAPHORE = asyncio.Semaphore(MAX_CONCURRENT_OCR)
 from backend import database
 
 async def perform_ocr(task_id: str, input_path: Path, original_name: str):
-    """Arka planda ocrmypdf kullanarak OCR işlemini gerçekleştirir."""
+    """Performs OCR in the background using ocrmypdf."""
     success = False
     dest_path = None
     try:
         pdf_id = uuid.uuid4().hex
         dest_path = STORAGE_DIR / f"{pdf_id}_src.pdf"
 
-        # 1. Aşama Optimizasyonu: Sistem kaynaklarını korumak için PyMuPDF ile hızlı metin taraması
+        # Phase 1 Optimization: Fast text scanning with PyMuPDF to conserve system resources
         import shutil
         with lock_file(input_path):
             doc = fitz.open(str(input_path))
             needs_ocr = False
             
             for page in doc:
-                # Eğer bir sayfada 15 karakterden az metin varsa, o sayfa muhtemelen taranmış bir resimdir.
+                # If a page has less than 15 characters of text, it is likely a scanned image.
                 if len(page.get_text().strip()) < 15:
                     needs_ocr = True
                     break
@@ -88,8 +88,8 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
             doc.close()
 
         if not needs_ocr:
-            # Belgedeki tüm sayfalarda halihazırda yeterli metin var. 
-            # OCR işlemini (ocrmypdf) tamamen atla ve dosyayı doğrudan kopyala! (0.01s sürer)
+            # All pages in the document already have sufficient text. 
+            # Skip the OCR process completely and copy the file directly! (takes ~0.01s)
             shutil.copy2(input_path, dest_path)
             
             database.update_task_success(task_id, pdf_id, page_count, original_name)
@@ -102,18 +102,18 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
                     pass
             return
 
-        # 2. Aşama Optimizasyonu: En az 1 resimli sayfa bulunduysa OCR başlat
+        # Phase 2 Optimization: Start OCR if at least 1 image page is found
         try:
             async with OCR_SEMAPHORE:
                 proc = await asyncio.create_subprocess_exec(
                     "ocrmypdf",
-                    "--skip-text",   # Mixed dokümanlarda sadece resimli sayfaları OCR'dan geçirir
+                    "--skip-text",   # Run OCR only on image pages in mixed documents
                     "-l", "tur+eng",
-                    # Hız optimizasyonu: --jobs 1 kaldırıldı, tüm CPU çekirdekleri kullanılacak
-                    # --deskew ve --clean çok yavaşlattığı için yorum satırına alındı
-                    # "--deskew",      # Sayfaları düzeltir (eğikliği giderir) -> ÇOK YAVAŞLATIR
-                    # "--clean",       # Gürültü temizler -> ÇOK YAVAŞLATIR
-                    "--optimize", "1", # Dosya boyutunu küçültür
+                    # Speed optimization: Removed --jobs 1, all CPU cores will be used
+                    # Commented out --deskew and --clean because they slow down process significantly
+                    # "--deskew",      # Fixes page orientation (deskew) -> VERY SLOW
+                    # "--clean",       # Cleans noise -> VERY SLOW
+                    "--optimize", "1", # Reduces file size
                     "--fast-web-view", "0",
                     str(input_path),
                     str(dest_path),
@@ -126,7 +126,7 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
                     database.update_task_failure(task_id, stderr.decode('utf-8', errors='replace'))
                     return
         except FileNotFoundError:
-            database.update_task_failure(task_id, "OCR motoru (ocrmypdf) sistemde yüklü değil.")
+            database.update_task_failure(task_id, "OCR engine (ocrmypdf) is not installed on the system.")
             return
             
         with lock_file(dest_path):
@@ -154,27 +154,27 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
 
 
 def _src_path(pdf_id: str) -> Path:
-    """Kaynak PDF dosyasının yolunu döner."""
+    """Returns the path of the source PDF file."""
     if not is_valid_uuid(pdf_id):
-        raise ValueError(f"Geçersiz PDF ID: {pdf_id}")
+        raise ValueError(f"Invalid PDF ID: {pdf_id}")
         
     path = STORAGE_DIR / f"{pdf_id}_src.pdf"
     if not path.exists():
-        raise FileNotFoundError(f"PDF bulunamadı: {pdf_id}")
+        raise FileNotFoundError(f"PDF not found: {pdf_id}")
     return path
 
 
 def render_page(pdf_id: str, page_num: int, dpi: int = 120) -> Path:
-    """Belirtilen sayfayı PNG olarak render edip diskte önbelleğe alır ve dosya yolunu döner.
-    Sonuç STORAGE_DIR içinde saklanır.
+    """Renders the specified page as PNG, caches it on disk, and returns the file path.
+    The result is stored in STORAGE_DIR.
 
     Args:
-        pdf_id: Kaynak PDF kimliği
-        page_num: 0-tabanlı sayfa numarası
-        dpi: Render çözünürlüğü (varsayılan 120)
+        pdf_id: Source PDF ID
+        page_num: 0-based page number
+        dpi: Render resolution (default 120)
 
     Returns:
-        Oluşturulan veya var olan PNG dosyasının Path nesnesi
+        Path object of the created or existing PNG file
     """
     path = _src_path(pdf_id)
     out_path = STORAGE_DIR / f"{pdf_id}_page_{page_num}_{dpi}.png"
@@ -199,13 +199,13 @@ def render_page(pdf_id: str, page_num: int, dpi: int = 120) -> Path:
 
 
 def extract_pages(pdf_id: str, page_indices: list[int], rotations: dict[int, int] = None) -> tuple[str, str]:
-    """Belirtilen sayfa listesini yeni bir PDF dosyası olarak çıkarır
-    ve belirtilen açılara göre döndürür.
+    """Extracts the specified list of pages as a new PDF file
+    and rotates them according to the specified angles.
 
     Args:
-        pdf_id: Kaynak PDF kimliği
-        page_indices: Çıkarılacak sayfa indeksleri listesi (0-tabanlı)
-        rotations: {sayfa_indeksi: döndürme_açısı} örneğin {0: 90, 1: -90}
+        pdf_id: Source PDF ID
+        page_indices: List of page indices to extract (0-based)
+        rotations: {page_index: rotation_angle} e.g. {0: 90, 1: -90}
 
     Returns:
         (file_id, filename)
@@ -217,28 +217,28 @@ def extract_pages(pdf_id: str, page_indices: list[int], rotations: dict[int, int
     with lock_file(src_path):
         src_doc = fitz.open(str(src_path))
     
-        # Sayfa sayısını doğrula ve geçersizleri ayıkla
+        # Validate page count and filter out invalid ones
         total = len(src_doc)
         valid_indices = [idx for idx in page_indices if 0 <= idx < total]
         
         if not valid_indices:
              src_doc.close()
-             raise ValueError("Hiç geçerli sayfa seçilmedi.")
+             raise ValueError("No valid pages selected.")
     
         if len(valid_indices) > 500:
              src_doc.close()
-             raise ValueError("Sistem performansını korumak için, tek seferde en fazla 500 sayfa çıkarılabilir.")
+             raise ValueError("To protect system performance, a maximum of 500 pages can be extracted at once.")
     
         new_doc = fitz.open()
         
-        # Her bir sayfayı tek tek ekle (sırayı korumak için)
+        # Add each page one by one (to preserve order)
         for idx in valid_indices:
             new_doc.insert_pdf(src_doc, from_page=idx, to_page=idx)
     
-        # Rotasyonları uygula
+        # Apply rotations
         has_rotation = False
         for i, _ in enumerate(new_doc):
-            # Orijinal PDF'teki sayfa indeksi
+            # Page index in original PDF
             orig_page_idx = valid_indices[i]
             if orig_page_idx in rotations:
                 angle = rotations[orig_page_idx]
@@ -249,7 +249,7 @@ def extract_pages(pdf_id: str, page_indices: list[int], rotations: dict[int, int
     
         file_id = uuid.uuid4().hex
         
-        # Dosya adına seçilen sayfa sayısını ekle
+        # Append selected page count to filename
         count = len(valid_indices)
         if count == 1:
             label = f"page_{valid_indices[0] + 1}"
@@ -271,11 +271,11 @@ def extract_pages(pdf_id: str, page_indices: list[int], rotations: dict[int, int
 
 
 def get_output_path(file_id: str) -> Path:
-    """file_id'ye göre çıktı PDF dosyasının yolunu döner."""
+    """Returns the output PDF file path according to file_id."""
     if not is_valid_uuid(file_id):
-        raise ValueError(f"Geçersiz File ID: {file_id}")
+        raise ValueError(f"Invalid File ID: {file_id}")
         
     matches = list(STORAGE_DIR.glob(f"{file_id}_*.pdf"))
     if not matches:
-        raise FileNotFoundError(f"Çıktı dosyası bulunamadı: {file_id}")
+        raise FileNotFoundError(f"Output file not found: {file_id}")
     return matches[0]

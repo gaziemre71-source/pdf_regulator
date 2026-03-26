@@ -3,7 +3,7 @@ import threading
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-# Geçiçi veri tabanının aynı yerlerde durması için storage dizinini bulalım
+# Find the storage directory to keep the temporary database in the same place
 STORAGE_DIR = Path(__file__).parent / "storage"
 STORAGE_DIR.mkdir(exist_ok=True)
 DB_PATH = STORAGE_DIR / "tasks.db"
@@ -12,7 +12,7 @@ DB_PATH = STORAGE_DIR / "tasks.db"
 _local = threading.local()
 
 def get_db_connection():
-    """Mevcut thread için veritabanı bağlantısı döner."""
+    """Returns a database connection for the current thread."""
     if not hasattr(_local, "conn"):
         # check_same_thread=False allows sharing but thread-local is safer for sqlite.
         # It's okay to just use thread-locals for Fastapi's sync endpoints or asyncio threadpool.
@@ -22,7 +22,7 @@ def get_db_connection():
     return _local.conn
 
 def init_db():
-    """Tüm tabloları ve gereken başlangıç durumunu oluşturur."""
+    """Creates all tables and required initial state."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -40,18 +40,18 @@ def init_db():
     conn.commit()
 
 def cleanup_orphan_tasks():
-    """Sunucu yeniden başladığında 'processing' durumunda kalan asılı görevleri temizler."""
+    """Cleans up hanging tasks stuck in 'processing' state when the server restarts."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
         UPDATE ocr_tasks 
-        SET status = 'failed', error_message = 'Sunucu beklenmeyen bir şekilde yeniden başlatıldı.' 
+        SET status = 'failed', error_message = 'Server was restarted unexpectedly.' 
         WHERE status = 'processing'
     ''')
     conn.commit()
 
 def create_task(task_id: str, filename: str, label: str = ""):
-    """Yeni bir OCR işlemi oluşturur."""
+    """Creates a new OCR task."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -61,7 +61,7 @@ def create_task(task_id: str, filename: str, label: str = ""):
     conn.commit()
 
 def update_task_success(task_id: str, pdf_id: str, page_count: int, filename: str):
-    """Görev başarılı olduğunda durumunu günceller."""
+    """Updates the task status when successful."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -72,7 +72,7 @@ def update_task_success(task_id: str, pdf_id: str, page_count: int, filename: st
     conn.commit()
 
 def update_task_failure(task_id: str, error_message: str):
-    """Görev başarısız olduğunda durumunu günceller."""
+    """Updates the task status when failed."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -83,7 +83,7 @@ def update_task_failure(task_id: str, error_message: str):
     conn.commit()
 
 def get_task(task_id: str) -> Optional[Dict[str, Any]]:
-    """Görevin mevcut durumunu döner."""
+    """Returns the current status of the task."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM ocr_tasks WHERE task_id = ?", (task_id,))

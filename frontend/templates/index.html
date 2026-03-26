@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PDF REGULATOR</title>
-  <meta name="description" content="PDF sayfalarını seç, çıkar ve döndür — hızlı ve basit." />
+  <meta name="description" content="Select, extract and rotate PDF pages — fast and simple." />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -38,14 +38,14 @@
   <!-- MAIN: Sol Panel + PDF Viewer -->
   <main class="flex flex-1 overflow-hidden">
 
-    <!-- SOL PANEL: Üretilen PDFler -->
+    <!-- LEFT PANEL: Generated PDFs -->
     <aside class="w-64 shrink-0 bg-gray-900 border-r border-gray-800 flex flex-col">
       <div class="px-4 py-3 border-b border-gray-800">
-        <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Üretilen PDFler</h2>
+        <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Generated PDFs</h2>
       </div>
       <ul id="output-list" class="flex-1 overflow-y-auto p-3 space-y-2" hx-swap-oob="true">
         <li id="output-empty" class="text-xs text-gray-600 italic text-center mt-8">
-          Henüz PDF üretilmedi.
+          No PDFs generated yet.
         </li>
       </ul>
     </aside>
@@ -56,37 +56,37 @@
       <!-- Araç çubuğu -->
       <div id="toolbar" class="hidden bg-gray-900 border-b border-gray-800 px-5 py-2 flex items-center gap-3 shrink-0">
         <span id="selection-info" class="text-sm text-gray-400 flex-1">
-          Sayfalara tıklayarak seçin.
+          Click pages to select.
         </span>
 
         <div class="flex items-center gap-2">
           <button
             class="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors"
             onclick="selectAllPages()">
-            Hepsini Seç
+            Select All
           </button>
           <button
             class="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors"
             onclick="clearSelection()">
-            Seçimi Temizle
+            Clear Selection
           </button>
           <button id="btn-delete-selected"
             class="hidden px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-red-500 rounded border border-gray-700 transition-colors"
             onclick="deleteSelectedPages()">
-            Seçilenleri Sil
+            Delete Selected
           </button>
           <button id="btn-restore-all"
             class="hidden px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-yellow-500 rounded border border-gray-700 transition-colors"
             onclick="restoreAllPages()">
-            Hepsini Geri Getir
+            Restore All
           </button>
         </div>
 
         <div class="h-6 w-px bg-gray-800 mx-1"></div>
 
         <button id="btn-extract" class="action-btn bg-blue-600 hover:bg-blue-500 text-white border-blue-500"
-          onclick="doExtract()" title="Seçili Sayfaları Çıkar">
-          ✂ Çıkar
+          onclick="doExtract()" title="Extract Selected Pages">
+          ✂ Extract
         </button>
       </div>
 
@@ -97,7 +97,7 @@
             <path stroke-linecap="round" stroke-linejoin="round"
               d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
-          <p class="text-lg">Aşağıdan bir PDF yükleyin</p>
+          <p class="text-lg">Upload a PDF below</p>
         </div>
       </div>
     </section>
@@ -111,7 +111,7 @@
       ondragover="event.preventDefault(); this.classList.add('border-blue-400','bg-blue-950')"
       ondragleave="this.classList.remove('border-blue-400','bg-blue-950')" ondrop="handleDrop(event)">
       <p class="text-sm text-gray-400">
-        <span class="text-blue-400 font-semibold">Dosya seç (PDF, Tiff, Jpeg, Png)</span> veya buraya sürükle
+        <span class="text-blue-400 font-semibold">Choose file (PDF, Tiff, Jpeg, Png)</span> or drag it here
       </p>
     </div>
     <form id="upload-form" class="hidden">
@@ -126,22 +126,22 @@
       <button class="modal-close" onclick="closePreview()">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       </button>
-      <img id="preview-img" src="" alt="Önizleme">
+      <img id="preview-img" src="" alt="Preview">
     </div>
   </div>
 
   <!-- EXTRACT MODAL -->
   <div id="extract-modal" class="modal-overlay" onclick="closeExtractModal()">
     <div class="modal-content" style="max-width: 28rem" onclick="event.stopPropagation()">
-      <h3 class="text-lg font-bold mb-4">Çıkarma Seçenekleri</h3>
+      <h3 class="text-lg font-bold mb-4">Extraction Options</h3>
       <p class="text-sm text-gray-400 mb-6">
-        Seçtiğiniz evrakları onarıp temizleyerek (Deskew & Clean) Metne Dönüştürme (OCR) işlemi uygulansın mı?
+        Do you want to apply Text Recognition (OCR) by repairing and cleaning (Deskew & Clean) the selected documents?
       </p>
       
       <!-- Progress Bar (Hidden by default) -->
       <div id="extract-progress" class="hidden mb-6">
         <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
-          <span>Belge onarılıyor ve metne dönüştürülüyor...</span>
+          <span>Repairing document and converting to text...</span>
           <span id="extract-spinner" class="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></span>
         </div>
         <div class="w-full bg-gray-800 rounded-full h-1.5">
@@ -151,13 +151,13 @@
 
       <div id="extract-actions" class="flex justify-end gap-3 hover:text-white">
         <button class="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors" onclick="closeExtractModal()">
-          İptal
+          Cancel
         </button>
         <button class="px-4 py-2 text-sm bg-gray-600 hover:bg-gray-500 text-white rounded font-semibold transition-colors" onclick="confirmExtract(false)">
-          Sadece Çıkar
+          Extract Only
         </button>
         <button class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded font-semibold transition-colors" onclick="confirmExtract(true)">
-          Evet, OCR Uygula
+          Yes, Apply OCR
         </button>
       </div>
     </div>
@@ -189,10 +189,10 @@
       const validExts = ['.pdf', '.tiff', '.tif', '.jpeg', '.jpg', '.png'];
       const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
       if (!validExts.includes(ext)) {
-        showStatus('⚠ Desteklenmeyen veya bozuk dosya formatı. Lütfen .pdf, .tiff, .jpeg, veya .png yükleyiniz.', 'text-yellow-400');
+        showStatus('⚠ Unsupported or corrupted file format. Please upload .pdf, .tiff, .jpeg, or .png.', 'text-yellow-400');
         return;
       }
-      showStatus('⏳ Yükleniyor...', 'text-gray-400');
+      showStatus('⏳ Uploading...', 'text-gray-400');
       const form = new FormData();
       form.append('file', file);
 
@@ -200,7 +200,7 @@
         const res = await fetch('/upload', { method: 'POST', body: form });
         if (!res.ok) {
           const err = await res.json();
-          showStatus('✗ Hata: ' + err.detail, 'text-red-400');
+          showStatus('✗ Error: ' + err.detail, 'text-red-400');
           return;
         }
         
@@ -222,9 +222,9 @@
           } catch(e) {}
         }
         
-        showStatus('✓ İstek gönderildi', 'text-green-400');
+        showStatus('✓ Request sent', 'text-green-400');
       } catch (err) {
-        showStatus('✗ Bağlantı hatası.', 'text-red-400');
+        showStatus('✗ Connection error.', 'text-red-400');
       }
     }
 
@@ -301,7 +301,7 @@
 
     function updateSelectionInfo() {
       const info = document.getElementById('selection-info');
-      info.textContent = selectedPages.length === 0 ? 'Sayfaları seçin' : `${selectedPages.length} sayfa seçildi.`;
+      info.textContent = selectedPages.length === 0 ? 'Select pages' : `${selectedPages.length} pages selected.`;
       
       const btnDeleteSelected = document.getElementById('btn-delete-selected');
       if (btnDeleteSelected) {
@@ -436,7 +436,7 @@
         try {
             const res = await fetch(`/extract-status/${taskId}`);
             if (!res.ok) {
-                showStatus('✗ Sunucu hatası oluştu', 'text-red-400');
+                showStatus('✗ Server error occurred', 'text-red-400');
                 closeExtractModal();
                 return;
             }
@@ -447,9 +447,9 @@
                 appendToOutputList(data.html);
                 closeExtractModal();
                 clearSelection();
-                showStatus('✓ Çıkarma işlemi tamamlandı.', 'text-green-400');
+                showStatus('✓ Extraction completed.', 'text-green-400');
             } else {
-                showStatus('✗ OCR Hatası: ' + data.error, 'text-red-400');
+                showStatus('✗ OCR Error: ' + data.error, 'text-red-400');
                 closeExtractModal();
             }
         } catch (e) {
@@ -465,7 +465,7 @@
           body: JSON.stringify(body)
         });
         if (!res.ok) return null;
-        showStatus('✓ İşlem tamamlandı.', 'text-green-400');
+        showStatus('✓ Process completed.', 'text-green-400');
         return await res.text();
       } catch (e) { return null; }
     }

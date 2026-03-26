@@ -1,5 +1,5 @@
 """
-FastAPI uygulaması — PDF Selector & Rotator
+FastAPI application — PDF Selector & Rotator
 """
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -20,7 +20,7 @@ STATIC_DIR = BASE_DIR / "frontend" / "static"
 
 
 async def cleanup_old_files():
-    """Her saat başı, 1 saatten eski storage dosyalarını temizler."""
+    """Cleans up storage files older than 1 hour, running every hour."""
     import itertools
     while True:
         try:
@@ -33,16 +33,16 @@ async def cleanup_old_files():
                         try:
                             p.unlink()
                         except Exception as e:
-                            logging.error(f"Cleanup loop: {p} silinirken hata oluştu: {e}")
+                            logging.error(f"Cleanup loop: Error deleting {p}: {e}")
                 except Exception as e:
-                    logging.error(f"Cleanup loop: {p} statokunurken hata oluştu: {e}")
+                    logging.error(f"Cleanup loop: Error reading stat for {p}: {e}")
         except Exception as e:
-            logging.error(f"Cleanup loop genel hata: {e}")
+            logging.error(f"Cleanup loop general error: {e}")
         await asyncio.sleep(3600)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Uygulama yaşam döngüsü — storage dizinini kontrol et ve temizlik görevini başlat."""
+    """Application lifespan — check storage directory and start cleanup task."""
     STORAGE_DIR.mkdir(exist_ok=True)
     init_db()
     cleanup_orphan_tasks()
@@ -53,25 +53,25 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="PDF Selector & Rotator",
-    description="Sayfa seçimi, çıkarma ve döndürme için hafif PDF aracı.",
+    description="Lightweight PDF tool for page selection, extraction, and rotation.",
     version="1.0.0",
     lifespan=lifespan,
 )
 
-# Statik dosyalar
+# Static files
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# Router'ları kaydet
+# Register routers
 app.include_router(upload.router)
 app.include_router(pages.router)
 app.include_router(extract.router)
 app.include_router(download.router)
 
-# Jinja2 template motoru
+# Jinja2 template engine
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
 @app.get("/")
 async def index(request: Request):
-    """Ana sayfa."""
+    """Home page."""
     return templates.TemplateResponse(request=request, name="index.html", context={"request": request})

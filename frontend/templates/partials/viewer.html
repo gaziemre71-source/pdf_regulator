@@ -4,17 +4,17 @@
   data-pdf-id="{{ pdf_id }}"
   data-page-count="{{ page_count }}"
 >
-  <!-- Dosya başlığı -->
+  <!-- File header -->
   <div class="col-span-full text-sm text-gray-500 mb-2 flex items-center gap-2">
     <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round"
         d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
     </svg>
     <span class="text-gray-300 font-medium">{{ filename }}</span>
-    <span class="text-gray-600">· {{ page_count }} sayfa</span>
+    <span class="text-gray-600">· {{ page_count }} pages</span>
   </div>
 
-  <!-- Sayfa kartları -->
+  <!-- Page cards -->
   {% for i in range(page_count) %}
   <div
     id="page-card-{{ i }}"
@@ -22,34 +22,34 @@
     data-page-index="{{ i }}"
     onclick="selectPage('{{ i }}', event)"
     onmouseenter="hoverPage('{{ i }}')"
-    title="Sayfa {{ i + 1 }}"
+    title="Page {{ i + 1 }}"
   >
     <!-- Top Bar: Index + Drag Handle + Delete + Rotates -->
     <div class="card-top-bar">
-      <div class="drag-handle" title="Sürükleyip sıralayın">
+      <div class="drag-handle" title="Drag to reorder">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
       </div>
       <div class="page-number-small">{{ i + 1 }}</div>
       
-      <button class="delete-btn-inline ml-auto mr-1" onclick="deletePage(event, '{{ i }}')" title="Bu sayfayı sil">
+      <button class="delete-btn-inline ml-auto mr-1" onclick="deletePage(event, '{{ i }}')" title="Delete this page">
         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
       </button>
 
       <div class="flex gap-1">
-        <button class="small-rotate-btn" onclick="rotateSinglePage(event, '{{ i }}', 'left')" title="Sola Döndür">↺</button>
-        <button class="small-rotate-btn" onclick="rotateSinglePage(event, '{{ i }}', 'right')" title="Sağa Döndür">↻</button>
+        <button class="small-rotate-btn" onclick="rotateSinglePage(event, '{{ i }}', 'left')" title="Rotate Left">↺</button>
+        <button class="small-rotate-btn" onclick="rotateSinglePage(event, '{{ i }}', 'right')" title="Rotate Right">↻</button>
       </div>
     </div>
 
     <img
       src="/page/{{ pdf_id }}/{{ i }}"
-      alt="Sayfa {{ i + 1 }}"
+      alt="Page {{ i + 1 }}"
       class="page-img"
       loading="lazy"
     />
 
-    <div class="restore-overlay" onclick="restorePage(event, '{{ i }}')" title="Geri Getir">
-      <span class="text-white text-xs font-bold px-2 py-1 bg-gray-900 rounded bg-opacity-80">Geri Getir</span>
+    <div class="restore-overlay" onclick="restorePage(event, '{{ i }}')" title="Restore">
+      <span class="text-white text-xs font-bold px-2 py-1 bg-gray-900 rounded bg-opacity-80">Restore</span>
     </div>
   </div>
   {% endfor %}

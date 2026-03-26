@@ -1,6 +1,6 @@
 """
-Sayfa render endpoint — GET /page/{pdf_id}/{page_number}
-PNG olarak sayfa görüntüsü döner.
+Page render endpoint — GET /page/{pdf_id}/{page_number}
+Returns page image as PNG.
 """
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
@@ -12,14 +12,14 @@ router = APIRouter()
 
 @router.get("/page/{pdf_id}/{page_number}")
 async def get_page_image(pdf_id: str, page_number: int):
-    """Belirtilen sayfayı PNG olarak döner."""
+    """Returns the specified page as PNG."""
     try:
         png_path = pdf_service.render_page(pdf_id, page_number)
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="PDF bulunamadı.")
+        raise HTTPException(status_code=404, detail="PDF not found.")
     except IndexError:
-        raise HTTPException(status_code=404, detail="Sayfa bulunamadı.")
+        raise HTTPException(status_code=404, detail="Page not found.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Sayfa render hatası: {e}")
+        raise HTTPException(status_code=500, detail=f"Page render error: {e}")
 
     return FileResponse(path=str(png_path), media_type="image/png")

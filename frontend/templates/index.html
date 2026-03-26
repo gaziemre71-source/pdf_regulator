@@ -132,14 +132,13 @@
 
   <!-- EXTRACT MODAL -->
   <div id="extract-modal" class="modal-overlay" onclick="closeExtractModal()">
-    <div class="modal-content" style="max-width: 28rem" onclick="event.stopPropagation()">
-      <h3 class="text-lg font-bold mb-4">Extraction Options</h3>
-      <p class="text-sm text-gray-400 mb-6">
-        Do you want to apply Text Recognition (OCR) by repairing and cleaning (Deskew & Clean) the selected documents?
+    <div class="modal-content bg-gray-900 border border-gray-800 rounded-2xl p-8 flex flex-col shadow-2xl" style="max-width: 32rem" onclick="event.stopPropagation()">
+      <p class="text-xl text-white font-medium text-center leading-relaxed mb-8">
+        Do you want to apply text recognition by repairing and cleaning the selected documents?
       </p>
       
       <!-- Progress Bar (Hidden by default) -->
-      <div id="extract-progress" class="hidden mb-6">
+      <div id="extract-progress" class="hidden w-full mb-6">
         <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
           <span>Repairing document and converting to text...</span>
           <span id="extract-spinner" class="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></span>
@@ -149,15 +148,15 @@
         </div>
       </div>
 
-      <div id="extract-actions" class="flex justify-end gap-3 hover:text-white">
-        <button class="px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 transition-colors" onclick="closeExtractModal()">
+      <div id="extract-actions" class="flex justify-center gap-4 w-full">
+        <button class="px-5 py-2.5 text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg border border-gray-700 transition-colors" onclick="closeExtractModal()">
           Cancel
         </button>
-        <button class="px-4 py-2 text-sm bg-gray-600 hover:bg-gray-500 text-white rounded font-semibold transition-colors" onclick="confirmExtract(false)">
+        <button class="px-5 py-2.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors" onclick="confirmExtract(false)">
           Extract Only
         </button>
-        <button class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded font-semibold transition-colors" onclick="confirmExtract(true)">
-          Yes, Apply OCR
+        <button class="px-5 py-2.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold shadow-lg shadow-blue-500/30 transition-colors" onclick="confirmExtract(true)">
+          Yes, Convert to Text
         </button>
       </div>
     </div>

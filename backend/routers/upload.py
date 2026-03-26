@@ -62,8 +62,9 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
                 pass
 
     response = templates.TemplateResponse(
-        "partials/viewer.html",
-        {
+        request=request,
+        name="partials/viewer.html",
+        context={
             "request": request,
             "pdf_id": pdf_id,
             "page_count": page_count,
@@ -110,8 +111,9 @@ async def get_ocr_status(request: Request, task_id: str):
         filename = task.get("filename")
         
         response = templates.TemplateResponse(
-            "partials/viewer.html",
-            {
+            request=request,
+            name="partials/viewer.html",
+            context={
                 "request": request,
                 "pdf_id": pdf_id,
                 "page_count": page_count,

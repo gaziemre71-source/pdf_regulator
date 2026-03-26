@@ -107,12 +107,13 @@ async def perform_ocr(task_id: str, input_path: Path, original_name: str):
             async with OCR_SEMAPHORE:
                 proc = await asyncio.create_subprocess_exec(
                     "ocrmypdf",
-                    "--skip-text",   # <-- Mixed dokümanlarda sadece resimli sayfaları OCR'dan geçirir
+                    "--skip-text",   # Mixed dokümanlarda sadece resimli sayfaları OCR'dan geçirir
                     "-l", "tur+eng",
-                    "--jobs", "1",
-                    "--deskew",      # Sayfaları düzeltir (eğikliği giderir)
-                    "--clean",       # Gürültü ve artifact'leri temizler
-                    "--optimize", "1", # Dosya boyutunu küçültür ve binarize eder
+                    # Hız optimizasyonu: --jobs 1 kaldırıldı, tüm CPU çekirdekleri kullanılacak
+                    # --deskew ve --clean çok yavaşlattığı için yorum satırına alındı
+                    # "--deskew",      # Sayfaları düzeltir (eğikliği giderir) -> ÇOK YAVAŞLATIR
+                    # "--clean",       # Gürültü temizler -> ÇOK YAVAŞLATIR
+                    "--optimize", "1", # Dosya boyutunu küçültür
                     "--fast-web-view", "0",
                     str(input_path),
                     str(dest_path),

@@ -54,8 +54,9 @@ async def extract_pages(req: ExtractRequest, background_tasks: BackgroundTasks, 
         return PlainTextResponse(task_id)
 
     return templates.TemplateResponse(
-        "partials/pdf_item.html",
-        {
+        request=request,
+        name="partials/pdf_item.html",
+        context={
             "request": request,
             "file_id": file_id,
             "filename": filename,
@@ -81,8 +82,9 @@ async def get_extract_status(task_id: str, request: Request):
         label = task.get("label", "OCR Sonucu")
         
         html_response = templates.TemplateResponse(
-            "partials/pdf_item.html",
-            {
+            request=request,
+            name="partials/pdf_item.html",
+            context={
                 "request": request,
                 "file_id": pdf_id,
                 "filename": filename,

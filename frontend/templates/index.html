@@ -5,7 +5,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PDF REGULATOR</title>
-  <meta name="description" content="Select, extract and rotate PDF pages — fast and simple." />
+  <meta name="description"
+    content="Professional PDF tool to extract, rotate, and optimize pages with advanced text recognition and cleanup." />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -53,7 +54,7 @@
     <!-- PDF VIEWER -->
     <section class="flex-1 flex flex-col overflow-hidden">
 
-      <!-- Araç çubuğu -->
+      <!-- Toolbar -->
       <div id="toolbar" class="hidden bg-gray-900 border-b border-gray-800 px-5 py-2 flex items-center gap-3 shrink-0">
         <span id="selection-info" class="text-sm text-gray-400 flex-1">
           Click pages to select.
@@ -90,7 +91,7 @@
         </button>
       </div>
 
-      <!-- Sayfa listesi -->
+      <!-- Page list -->
       <div id="viewer" class="flex-1 overflow-y-auto px-6 py-4">
         <div id="upload-hint" class="flex flex-col items-center justify-center h-full gap-4 text-gray-600">
           <svg class="w-20 h-20" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
@@ -103,7 +104,7 @@
     </section>
   </main>
 
-  <!-- UPLOAD ALANI -->
+  <!-- UPLOAD AREA -->
   <footer class="bg-gray-900 border-t border-gray-800 px-6 py-4 shrink-0">
     <div id="drop-zone" class="border-2 border-dashed border-gray-700 rounded-xl p-5 text-center cursor-pointer
              hover:border-blue-500 transition-colors duration-200"
@@ -115,7 +116,8 @@
       </p>
     </div>
     <form id="upload-form" class="hidden">
-      <input id="file-input" type="file" accept=".pdf,.tiff,.tif,.jpeg,.jpg,.png" class="hidden" onchange="uploadFile(this)" />
+      <input id="file-input" type="file" accept=".pdf,.tiff,.tif,.jpeg,.jpg,.png" class="hidden"
+        onchange="uploadFile(this)" />
     </form>
     <div id="upload-status" class="text-xs text-center mt-2 text-gray-500 hidden"></div>
   </footer>
@@ -124,7 +126,9 @@
   <div id="preview-modal" class="modal-overlay" onclick="closePreview()">
     <div class="modal-content" onclick="event.stopPropagation()">
       <button class="modal-close" onclick="closePreview()">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
       </button>
       <img id="preview-img" src="" alt="Preview">
     </div>
@@ -132,16 +136,18 @@
 
   <!-- EXTRACT MODAL -->
   <div id="extract-modal" class="modal-overlay" onclick="closeExtractModal()">
-    <div class="modal-content bg-gray-900 border border-gray-800 rounded-2xl p-8 flex flex-col shadow-2xl" style="max-width: 32rem" onclick="event.stopPropagation()">
+    <div class="modal-content bg-gray-900 border border-gray-800 rounded-2xl p-8 flex flex-col shadow-2xl"
+      style="max-width: 32rem" onclick="event.stopPropagation()">
       <p class="text-xl text-white font-medium text-center leading-relaxed mb-8">
         Do you want to apply text recognition by repairing and cleaning the selected documents?
       </p>
-      
+
       <!-- Progress Bar (Hidden by default) -->
       <div id="extract-progress" class="hidden w-full mb-6">
         <div class="flex items-center justify-between text-xs text-gray-400 mb-2">
           <span>Repairing document and converting to text...</span>
-          <span id="extract-spinner" class="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></span>
+          <span id="extract-spinner"
+            class="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></span>
         </div>
         <div class="w-full bg-gray-800 rounded-full h-1.5">
           <div class="bg-blue-500 h-1.5 rounded-full w-full animate-pulse"></div>
@@ -149,13 +155,19 @@
       </div>
 
       <div id="extract-actions" class="flex justify-center gap-4 w-full">
-        <button class="px-5 py-2.5 text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg border border-gray-700 transition-colors" onclick="closeExtractModal()">
+        <button
+          class="px-5 py-2.5 text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg border border-gray-700 transition-colors"
+          onclick="closeExtractModal()">
           Cancel
         </button>
-        <button class="px-5 py-2.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors" onclick="confirmExtract(false)">
+        <button
+          class="px-5 py-2.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
+          onclick="confirmExtract(false)">
           Extract Only
         </button>
-        <button class="px-5 py-2.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold shadow-lg shadow-blue-500/30 transition-colors" onclick="confirmExtract(true)">
+        <button
+          class="px-5 py-2.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold shadow-lg shadow-blue-500/30 transition-colors"
+          onclick="confirmExtract(true)">
           Yes, Convert to Text
         </button>
       </div>
@@ -202,9 +214,9 @@
           showStatus('✗ Error: ' + err.detail, 'text-red-400');
           return;
         }
-        
+
         document.getElementById('viewer').innerHTML = await res.text();
-        
+
         // Trigger HTMX polling element
         if (typeof htmx !== 'undefined') {
           htmx.process(document.getElementById('viewer'));
@@ -218,9 +230,9 @@
             if (events.viewerReady) {
               document.dispatchEvent(new CustomEvent('viewerReady', { detail: events.viewerReady }));
             }
-          } catch(e) {}
+          } catch (e) { }
         }
-        
+
         showStatus('✓ Request sent', 'text-green-400');
       } catch (err) {
         showStatus('✗ Connection error.', 'text-red-400');
@@ -301,7 +313,7 @@
     function updateSelectionInfo() {
       const info = document.getElementById('selection-info');
       info.textContent = selectedPages.length === 0 ? 'Select pages' : `${selectedPages.length} pages selected.`;
-      
+
       const btnDeleteSelected = document.getElementById('btn-delete-selected');
       if (btnDeleteSelected) {
         if (selectedPages.length > 0) {
@@ -339,7 +351,7 @@
       event.stopPropagation(); // Prevent card from being selected
       pageIndex = parseInt(pageIndex);
       deletedPages.add(pageIndex);
-      
+
       const card = document.getElementById(`page-card-${pageIndex}`);
       if (card) {
         card.classList.add('deleted-page');
@@ -400,20 +412,20 @@
 
     async function confirmExtract(useOCR) {
       if (!currentPdfId || selectedPages.length === 0) return;
-      
+
       document.getElementById('extract-actions').classList.add('hidden');
       document.getElementById('extract-progress').classList.remove('hidden');
 
       const actRotations = {};
       selectedPages.forEach(idx => { if (pageRotations[idx]) actRotations[idx] = pageRotations[idx]; });
-      
+
       const currentOrder = Array.from(document.querySelectorAll('.page-card'))
         .map(card => parseInt(card.dataset.pageIndex));
       const reorderedSelection = currentOrder.filter(idx => selectedPages.includes(idx) && !deletedPages.has(idx));
 
       const res = await postAction('/extract', {
-        pdf_id: currentPdfId, 
-        page_indices: reorderedSelection, 
+        pdf_id: currentPdfId,
+        page_indices: reorderedSelection,
         rotations: actRotations,
         ocr: useOCR
       });
@@ -432,28 +444,28 @@
     }
 
     async function pollExtractTask(taskId) {
-        try {
-            const res = await fetch(`/extract-status/${taskId}`);
-            if (!res.ok) {
-                showStatus('✗ Server error occurred', 'text-red-400');
-                closeExtractModal();
-                return;
-            }
-            const data = await res.json();
-            if (data.status === "pending" || data.status === "processing") {
-                setTimeout(() => pollExtractTask(taskId), 1500);
-            } else if (data.status === "done") {
-                appendToOutputList(data.html);
-                closeExtractModal();
-                clearSelection();
-                showStatus('✓ Extraction completed.', 'text-green-400');
-            } else {
-                showStatus('✗ OCR Error: ' + data.error, 'text-red-400');
-                closeExtractModal();
-            }
-        } catch (e) {
-            closeExtractModal();
+      try {
+        const res = await fetch(`/extract-status/${taskId}`);
+        if (!res.ok) {
+          showStatus('✗ Server error occurred', 'text-red-400');
+          closeExtractModal();
+          return;
         }
+        const data = await res.json();
+        if (data.status === "pending" || data.status === "processing") {
+          setTimeout(() => pollExtractTask(taskId), 1500);
+        } else if (data.status === "done") {
+          appendToOutputList(data.html);
+          closeExtractModal();
+          clearSelection();
+          showStatus('✓ Extraction completed.', 'text-green-400');
+        } else {
+          showStatus('✗ OCR Error: ' + data.error, 'text-red-400');
+          closeExtractModal();
+        }
+      } catch (e) {
+        closeExtractModal();
+      }
     }
 
     async function postAction(url, body) {
@@ -510,11 +522,11 @@
       sortableInstance = new Sortable(el, {
         multiDrag: true,
         selectedClass: 'selected',
-        animation: 150, 
-        handle: '.drag-handle', 
-        ghostClass: 'sortable-ghost', 
+        animation: 150,
+        handle: '.drag-handle',
+        ghostClass: 'sortable-ghost',
         dragClass: 'sortable-drag',
-        scroll: scrollParent, 
+        scroll: scrollParent,
         scrollSensitivity: 80,
         scrollSpeed: 20
       });
